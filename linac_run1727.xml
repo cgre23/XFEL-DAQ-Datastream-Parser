@@ -1,7 +1,0 @@
-<DAQREQ>
-        <TStart time='2021-12-05T20:51:21'/>
-        <TStop  time='2021-12-05T20:51:22'/>
-        <Exp  name='linac'/>
-        <Chan name="XFEL.FEL/XGM.GAS_SUPPLY/XGM.3261.T6/GAS.COMPAT.ID"/>
-        </DAQREQ>
-         
