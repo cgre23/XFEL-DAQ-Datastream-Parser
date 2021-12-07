@@ -1,8 +1,11 @@
 <DAQREQ>
-        <TStart time='2021-12-06T15:10:16'/>
-        <TStop  time='2021-12-06T15:10:17'/>
-        <Exp  name='linac'/>
-        <Chan name="XFEL.DAQ/DISTRIBUTOR/DAQ.LINAC/EVB.EV.MASK"/>
-<Chan name="XFEL.DAQ/DISTRIBUTOR/DAQ.STREAM.3/EVB.EV.MASK"/>
+        <TStart time='2021-12-07T15:48:48'/>
+        <TStop  time='2021-12-07T15:48:49'/>
+        <Exp  name='xfel'/>
+        <Chan name="XFEL.DAQ/DISTRIBUTOR/DAQ.STREAM.7/EVB.EV.MASK"/>
+<Chan name="XFEL.DIAG/BPM/BPMG.25I.I1"/>
+<Chan name="XFEL.DIAG/BPM/BPMA.206.B1"/>
+<Chan name="XFEL.DIAG/BPM/BPMA.213.B1"/>
+        <CDir name='/daq/xfel/admtemp' />
         </DAQREQ>
          

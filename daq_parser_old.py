@@ -184,7 +184,6 @@ class DAQApp(QWidget):
         <TStop  time='${stoptime}'/>
         <Exp  name='${exp}'/>
         ${document_list}
-        <CDir name='/daq/xfel/admtemp' />
         </DAQREQ>
          """)
 
@@ -220,7 +219,7 @@ class DAQApp(QWidget):
 
     def open_file(self):  # self.parent.data_dir
         self.streampath, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Pick channel description file", "/daq/xfel/admtemp", 'xml (*.xml)', None, QtWidgets.QFileDialog.DontUseNativeDialog)
+            self, "Pick channel description file", "/Users/christiangrech/Documents/GitHub/XFEL-DAQ-Datastream-Parser/xml", 'xml (*.xml)', None, QtWidgets.QFileDialog.DontUseNativeDialog)
         if self.streampath != "":
             filename = os.path.basename(self.streampath)
             self.ui.filenameEdit.setText(filename)
@@ -231,7 +230,7 @@ class DAQApp(QWidget):
 
     def open_file_catalogue(self):  # self.parent.data_dir
         self.streampath_cat, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Pick channel description file", "/daq/xfel/admtemp", 'xml (*.xml)', None, QtWidgets.QFileDialog.DontUseNativeDialog)
+            self, "Pick channel description file", "/Users/christiangrech/Documents/GitHub/XFEL-DAQ-Datastream-Parser/xml", 'xml (*.xml)', None, QtWidgets.QFileDialog.DontUseNativeDialog)
         if self.streampath_cat != "":
             filename_cat = os.path.basename(self.streampath_cat)
             self.ui.filenameEdit2.setText(filename_cat)
@@ -248,7 +247,6 @@ class DAQApp(QWidget):
 
     def copy_xml_desc_file(self):
         srcPath = self.streampath
-        srcFile = os.path.basename(srcPath)
         dest = os.getcwd() + '/temp/'
         destFile = 'chann_dscr.xml'
         destPath = os.path.join(dest, destFile)
