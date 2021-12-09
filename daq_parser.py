@@ -189,7 +189,16 @@ class DAQApp(QWidget):
                     self.checked_list.append(signal.text(0))
             self.ui.status_text.setText(
                 'Creating XML file with selected channels')
-            self.create_xml()
+
+            if self.ui.localmoderb.isChecked() and self.localmode:
+                filename_ok = self.check_raw_filename()
+                if filename_ok:
+                    self.create_xml()
+                else:
+                    self.ui.status_text.setText(
+                        'Make sure all raw files are from the same stream')
+            else:
+                self.create_xml()
         else:
             self.ui.status_text.setText('No channels selected')
 
@@ -480,6 +489,20 @@ class DAQApp(QWidget):
             return True
         else:
             return False
+
+    def check_raw_filename(self):
+        root_list = []
+        for filename in self.rawfilepathlist:
+            root_list.append(filename.split('_main')[0])
+        root_item = root_list[0]
+        print(root_list)
+        for root in root_list:
+            if root != root_item:
+                return False
+                break
+            else:
+                pass
+        return True
 
     def copy_xml_desc_file(self):
         srcPath = self.streampath

@@ -1,10 +1,10 @@
 <DAQREQ>
-            <Exp  name='xfel_sase1_'/>
+            <Exp  name='xfel_sase2'/>
             <File name="/Users/christiangrech/Nextcloud/Datastream/xfel_sase1_main_run1727_file43_20211107T235434.1.raw"/>
-<File name="/Users/christiangrech/Nextcloud/Datastream/xfel_sase3_main_run1664_file1_20210809T094304.1.raw"/>
-<File name="/Users/christiangrech/Nextcloud/Datastream/xfel_sase2_main_run1664_file1_20210809T094304.1.raw"/>
 <File name="/Users/christiangrech/Nextcloud/Datastream/xfel_sase1_main_run1664_file1_20210809T094304.1.raw"/>
-            <Chan name="XFEL.SDIAG/BCM/BCM.180.B1"/>
+            <Chan name="XFEL.FEL/XGM/XGM.3261.T6"/>
+<Chan name="XFEL.FEL/XGM/XGM.2595.T6"/>
+<Chan name="XFEL.SDIAG/BCM/BCM.180.B1"/>
 <Chan name="XFEL.SDIAG/BCM/BCM.205.B1"/>
 <Chan name="XFEL.SDIAG/BCM/BCM.416.B2"/>
             <CDir name='/daq/xfel/admtemp' />
