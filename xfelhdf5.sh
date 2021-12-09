@@ -5,7 +5,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH_OLD:/export/doocs/lib:/net/doocsdev16/ex
 export PATH=/opt/anaconda3/bin:$PATH:/export/doocs/bin
 export PYTHONPATH=$PYTHONPATH_OLD:/home/doocsadm/bm/python/DAQ/classes:/export/doocs/lib:/net/doocsdev16/export/doocs/lib:$PYTHONPATH
 
-python3 daqraw2hdf5.py -xml temp/filtered_stream_channels.xml -xfel -local -descr temp/chann_dscr.xml -onefile
+python3 daqraw2hdf5.py -xml temp/filtered_stream_channels.xml -xfel -local -descr temp/chann_dscr.xml -onefile -dout /Documents/DAQ_HDF5_files
 
 echo "Job finished - exit"
 exit

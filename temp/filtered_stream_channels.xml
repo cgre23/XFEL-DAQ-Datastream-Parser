@@ -1,11 +1,12 @@
 <DAQREQ>
-        <TStart time='2021-12-07T15:48:48'/>
-        <TStop  time='2021-12-07T15:48:49'/>
-        <Exp  name='xfel'/>
-        <Chan name="XFEL.DAQ/DISTRIBUTOR/DAQ.STREAM.7/EVB.EV.MASK"/>
-<Chan name="XFEL.DIAG/BPM/BPMG.25I.I1"/>
-<Chan name="XFEL.DIAG/BPM/BPMA.206.B1"/>
-<Chan name="XFEL.DIAG/BPM/BPMA.213.B1"/>
-        <CDir name='/daq/xfel/admtemp' />
-        </DAQREQ>
-         
+            <Exp  name='xfel_sase1_'/>
+            <File name="/Users/christiangrech/Nextcloud/Datastream/xfel_sase1_main_run1727_file43_20211107T235434.1.raw"/>
+<File name="/Users/christiangrech/Nextcloud/Datastream/xfel_sase3_main_run1664_file1_20210809T094304.1.raw"/>
+<File name="/Users/christiangrech/Nextcloud/Datastream/xfel_sase2_main_run1664_file1_20210809T094304.1.raw"/>
+<File name="/Users/christiangrech/Nextcloud/Datastream/xfel_sase1_main_run1664_file1_20210809T094304.1.raw"/>
+            <Chan name="XFEL.SDIAG/BCM/BCM.180.B1"/>
+<Chan name="XFEL.SDIAG/BCM/BCM.205.B1"/>
+<Chan name="XFEL.SDIAG/BCM/BCM.416.B2"/>
+            <CDir name='/daq/xfel/admtemp' />
+            </DAQREQ>
+             
