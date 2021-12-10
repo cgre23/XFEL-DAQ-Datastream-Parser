@@ -46,6 +46,7 @@ class Ui_Form(object):
         self.filtertable.setColumnCount(0)
         self.filtertable.setObjectName("filtertable")
         self.filtertable.setRowCount(0)
+        self.filtertable.verticalHeader().setVisible(False)
         self.gridLayout_3.addWidget(self.filtertable, 1, 1, 1, 1)
         self.groupBox = QtWidgets.QGroupBox(self.tab)
         self.groupBox.setObjectName("groupBox")
