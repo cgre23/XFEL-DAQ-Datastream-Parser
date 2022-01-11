@@ -13,3 +13,6 @@ Thu 09 Dec 2021
 TBD:
 * Try PNFS data in BKR
 * Set up data folder in BKR
+
+
+python3 level0.py --start 2021-11-17T15:02:00 --stop 2021-11-17T15:02:05 --xmldfile xml/xfel_sase1_main_run1727_chan_dscr.xml --dest SA1
