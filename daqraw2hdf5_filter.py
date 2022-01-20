@@ -465,6 +465,7 @@ image = False
 stats_list = []
 
 if __name__ == '__main__':
+    global filter_indices
     xmlfile = None
     xmldfile = None
     do_print = False
@@ -766,6 +767,7 @@ if __name__ == '__main__':
                     ##################################### FILTER ADDITION
                     if daqname == channel and dest != []:
                         indexout = []
+                        filter_indices = []
                         #indexoutold = []
                         data = chan[0]['data']
                         stamponce = True

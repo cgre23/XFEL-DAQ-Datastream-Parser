@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
-import sys, getopt, os
+import sys
+import getopt
+import os
 import datetime
 import string
 import time
@@ -28,7 +30,8 @@ def HelpAndExit():
     print("\t--dout path\t\t- directory for storing HDF5 files")
     print("\t-h\t\t- prints this help\n")
     sys.exit(1)
-    
+
+
 def create_xml(filename, start_time, stop_time, stream_name, channel_list):
     inner_template = string.Template('<Chan name="${name}"/>')
     outer_template = string.Template("""<DAQREQ>
@@ -43,8 +46,7 @@ def create_xml(filename, start_time, stop_time, stream_name, channel_list):
             name=channel) for channel in channel_list]
     out = outer_template.substitute(
             document_list='\n'.join(inner_contents), exp=stream_name, starttime=start_time, stoptime=stop_time)
-    
-    
+
     write_status = None
     try:
         with open(filename, 'w') as writer:
@@ -54,10 +56,12 @@ def create_xml(filename, start_time, stop_time, stream_name, channel_list):
         write_status = False
     return out, write_status
 
+
 def Fatal(msg):
     sys.stderr.write("%s: %s\n\n" % (os.path.basename(sys.argv[0]), msg))
     HelpAndExit()
-    
+
+
 def deletedirs():
     path = os.getcwd()
     file_path = path + '/tmp/'
@@ -67,7 +71,7 @@ def deletedirs():
     except OSError as e:
         print("Error: %s : %s" % (file_path, e.strerror))
 
-    
+
 def pre_conversion(argv):
     start = None
     stop = None
@@ -76,7 +80,8 @@ def pre_conversion(argv):
     bit1 = None
     bit2 = None
     try:
-        opts, args = getopt.getopt(argv,"hs:t:c:d:o",["start=","stop=", "xmldfile=", "dest=", "dout="])
+        opts, args = getopt.getopt(
+            argv, "hs:t:c:d:o", ["start=", "stop=", "xmldfile=", "dest=", "dout="])
     except getopt.GetoptError:
         HelpAndExit()
     for opt, arg in opts:
@@ -97,40 +102,44 @@ def pre_conversion(argv):
     print('Desc is: ', xmldfile)
     print('Dest is: ', dest)
     print('Output folder is: ', dout)
-    
+
     if not dout:
         dout = './'
     if (not os.path.exists(dout)) or (not os.access(dout, os.W_OK)):
         Fatal("Directory for  HDF5 files '%s' doesn't exist or not writable" % dout)
-        
-    if not  dout.endswith('/'):
+
+    if not dout.endswith('/'):
         dout += '/'
-    
+
     if not start or not stop or not xmldfile:
         Fatal("Please, check you input arguments and make sure to insert at least a start time, stop time and description file")
-        
+
     if start:
         try:
-            starttime =  int(datetime.datetime.strptime(start, '%Y-%m-%dT%H:%M:%S').timestamp())
+            starttime = int(datetime.datetime.strptime(
+                start, '%Y-%m-%dT%H:%M:%S').timestamp())
         except:
-            Fatal("Please, check start time format '%s'. It must be 'Year-Month-DayTHour:Min:Sec' " % start) 
-    
+            Fatal(
+                "Please, check start time format '%s'. It must be 'Year-Month-DayTHour:Min:Sec' " % start)
+
     if stop:
         try:
-            stoptime =  int(datetime.datetime.strptime(stop, '%Y-%m-%dT%H:%M:%S').timestamp())
+            stoptime = int(datetime.datetime.strptime(
+                stop, '%Y-%m-%dT%H:%M:%S').timestamp())
         except:
-            Fatal("Please, check stop time format '%s'. It must be 'Year-Month-DayTHour:Min:Sec' " % stop) 
-            
+            Fatal(
+                "Please, check stop time format '%s'. It must be 'Year-Month-DayTHour:Min:Sec' " % stop)
+
     if stoptime <= starttime:
-        Fatal("Please, check that stop time is later than the start time.") 
-    
+        Fatal("Please, check that stop time is later than the start time.")
+
     if (not os.path.exists(xmldfile)) or (not os.access(xmldfile, os.R_OK)):
         Fatal("XML description file '%s' doesn't exist or not readable" % xmldfile)
-    
+
     if dest:
         if dest == 'SA1':
             bit1 = 'Destination:T4D\ \(SASE1/3\ dump\)'
-            bit2 = 'Special\ Flags:SASE3\ soft\ kick\ \(T4\)' 
+            bit2 = 'Special\ Flags:SASE3\ soft\ kick\ \(T4\)'
             bunchfilter = 'SA1'
         elif dest == 'SA2':
             bit1 = 'Destination:T5D\ \(SASE2\ dump\)'
@@ -143,18 +152,17 @@ def pre_conversion(argv):
         else:
             print('Destination not recognized')
             bunchfilter = 'all'
-        print('Pattern to use:',bit1, bit2)
+        print('Pattern to use:', bit1, bit2)
     else:
         print('No filter by destination applied')
         bunchfilter = 'all'
-        
 
     xmldoc = minidom.parse(xmldfile)
-    itemlist = xmldoc.getElementsByTagName(name_tag) 
+    itemlist = xmldoc.getElementsByTagName(name_tag)
 
-    for s in itemlist :
+    for s in itemlist:
         channel_list.append(s.firstChild.nodeValue)
-          
+
     streamname = os.path.basename(xmldfile).split('_main')[0]
     print('Detected stream: ', streamname)
     # saving the updated XML request file
@@ -162,28 +170,31 @@ def pre_conversion(argv):
     try:
         os.makedirs(dest_dir)
     except OSError:
-        pass # already exists
-    
+        pass  # already exists
+
     tmpxmlfile = 'xfelrequest.xml'
     xmlpath = os.path.join(dest_dir, tmpxmlfile)
     xml, res = create_xml(xmlpath, start, stop, streamname, channel_list)
 
     if not res:
-        print('Failed to create XML file %s ... exiting'%tmpxmlfile)
+        print('Failed to create XML file %s ... exiting' % tmpxmlfile)
         sys.exit(-1)
     else:
         print('XML file created')
-        
+
     return start, stop, bit1, bit2, xmldfile, xmlpath, bunchfilter
 
+
 if __name__ == "__main__":
-    start, stop, filter_bit1, filter_bit2, xmldfile, xmlfile, bunchfilter = pre_conversion(sys.argv[1:])
-    
-    startstring = start.replace('-','')
-    startstring = startstring.replace(':','')
-    stopstring = stop.replace('-','')
-    stopstring = stopstring.replace(':','')
-    
-    command = "export PYTHONPATH=/beegfs/desy/group/fla/software/daq/libs/CentOS-7-x86_64; export LD_LIBRARY_PATH=/beegfs/desy/group/fla/software/daq/libs/CentOS-7-x86_64:/beegfs/desy/group/fla/software/daq/libs/CentOS-7-x86_64/extlib; python3 daqraw2hdf5_filter.py -xml %s -xfel -onefile -local -descr %s -logic AND -dest %s,\%s -tstart %s -tstop %s -filt %s" %(xmlfile, xmldfile, filter_bit1, filter_bit2, startstring, stopstring, bunchfilter)
+    start, stop, filter_bit1, filter_bit2, xmldfile, xmlfile, bunchfilter = pre_conversion(
+        sys.argv[1:])
+
+    startstring = start.replace('-', '')
+    startstring = startstring.replace(':', '')
+    stopstring = stop.replace('-', '')
+    stopstring = stopstring.replace(':', '')
+
+    command = "export PYTHONPATH=/beegfs/desy/group/mpa/fla/software/daq/libs/CentOS-7-x86_64; export LD_LIBRARY_PATH=/beegfs/desy/group/mpa/fla/software/daq/libs/CentOS-7-x86_64:/beegfs/desy/group/mpa/fla/software/daq/libs/CentOS-7-x86_64/extlib; python3 daqraw2hdf5_filter.py -xml %s -xfel -onefile -local -descr %s -logic AND -dest %s,\%s -tstart %s -tstop %s -filt %s" % (
+        xmlfile, xmldfile, filter_bit1, filter_bit2, startstring, stopstring, bunchfilter)
     print(command)
     subprocess.run(command, shell=True)

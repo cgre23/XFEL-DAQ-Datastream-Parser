@@ -1,6 +1,9 @@
 import sys
 import string
 import os
+import numpy as np
+from os import listdir
+from os.path import isfile, join
 import h5py
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtCore import Qt
@@ -10,7 +13,7 @@ import shutil
 import re
 from datetime import datetime
 #import classes.trie as trie
-#from collections import defaultdict
+from collections import defaultdict
 
 
 class DAQApp(QWidget):
@@ -23,14 +26,14 @@ class DAQApp(QWidget):
         self.ui.filtertable.setRowCount(0)
         self.ui.filtertable.setColumnCount(1)
         self.ui.filtertable.horizontalHeader().setStretchLastSection(True)
-        self.channel_list = []
+        self.channel_list = defaultdict(list)
         self.channel_group_list = []
         self.channels_selected = []
         self.streampath = ''
-
+        self.storagepath = '/Users/christiangrech/Documents/GitHub/XFEL-DAQ-Datastream-Parser/hdf5'
+        self.outpath = os.getcwd() + '/out'
         # Disable buttons
         self.ui.loadcataloguepb.setEnabled(False)
-        self.ui.channelpb.setEnabled(False)
         self.ui.pushButton.setEnabled(False)
         self.ui.filterpb.setEnabled(False)
         self.xml_name_matches = ["main", "run", "chan", "dscr", ".xml"]
@@ -41,10 +44,15 @@ class DAQApp(QWidget):
         self.ui.stopdate.setDateTime(QtCore.QDateTime.currentDateTime())
         self.ui.startdate.setDisplayFormat("dd/MM/yyyy hh:mm:ss")
         self.ui.stopdate.setDisplayFormat("dd/MM/yyyy hh:mm:ss")
+        self.ui.streamtabs.setTabEnabled(0, False)
+        self.ui.streamtabs.setTabEnabled(1, False)
+        self.ui.streamtabs.setTabEnabled(2, False)
+        self.ui.streamtabs.setTabEnabled(3, False)
+        self.ui.streamtabs.setTabEnabled(4, False)
 
         # Push buttons
         self.ui.browsepb.clicked.connect(self.choose_output_directory)
-        self.ui.channelpb.clicked.connect(self.getChannelList)
+        self.ui.filenameEdit.setText(self.outpath)
         self.ui.browsepb2.clicked.connect(self.open_file_catalogue)
         self.ui.loadcataloguepb.clicked.connect(self.getChannelListCatalogue)
         self.ui.pushButton.clicked.connect(self.find_checked)
@@ -56,7 +64,16 @@ class DAQApp(QWidget):
         header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         header.setStretchLastSection(False)
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
-        self.ui.treeWidget.setHeaderLabels(['Channel name'])
+        self.ui.treeWidget.setHeaderLabels(
+            ['Channel name', '', '', '', '', '', '', '', '', '', ''])
+        header_main = self.ui.treeWidget.header()
+        header_main.setStretchLastSection(False)
+        header_main.setSectionResizeMode(
+            0, QtWidgets.QHeaderView.Stretch)
+        self.tw_columns = 10
+        for column in range(1, self.tw_columns+1):
+            header_main.setSectionResizeMode(
+                column, QtWidgets.QHeaderView.ResizeToContents)
         self.ui.treeWidget_2.setHeaderLabels(
             ['Channel name', 'Description', 'Unit'])
         self.ui.filtertable.setHorizontalHeaderLabels(['Filter by subsystem:'])
@@ -69,35 +86,88 @@ class DAQApp(QWidget):
     def getChannelList(self):
         #Open XML file Tab 1
         self.ui.treeWidget.clear()
-        self.channel_list = []
+        self.ui.status_text.setText(
+            '')
+        self.channel_list = defaultdict(list)
+        self.datasets_list = defaultdict(list)
         start_timestamp = self.ui.startdate.dateTime()
-        start_timestamp_str = start_timestamp.toString(
-            'yyyy-MM-ddTHH:mm:ss')
+        self.start_timestamp_str = start_timestamp.toString(
+            'yyyyMMddTHHmmss')
         stop_timestamp_min = start_timestamp.addSecs(1)
         self.ui.stopdate.setMinimumDateTime(stop_timestamp_min)
         stop_timestamp = self.ui.stopdate.dateTime()
-        stop_timestamp_str = stop_timestamp.toString(
-            'yyyy-MM-ddTHH:mm:ss')
-
+        self.stop_timestamp_str = stop_timestamp.toString(
+            'yyyyMMddTHHmmss')
+        self.files_match = defaultdict(list)
         if self.filepathlist != []:
-            h5f = h5py.File(
-                'hdf5/xfel_sase1_main_run1727_file1221_20211117T152002.all.hdf5', 'r')
+            self.ui.pushButton.setEnabled(True)
+            for file in self.filepathlist:
+                match = re.search('\d{8}T\d{6}_\d{8}T\d{6}', file)
+                if match:
+                    startdate = datetime.strptime(
+                        match.group(0).split('_')[0], '%Y%m%dT%H%M%S')
+                    stopdate = datetime.strptime(
+                        match.group(0).split('_')[1], '%Y%m%dT%H%M%S')
+                    if startdate >= start_timestamp and stopdate <= stop_timestamp:
+                        self.files_match['filename'].append(file)
+                        self.files_match['stream'].append(file.split('_2')[0])
+                        self.files_match['startdate'].append(startdate)
+                        self.files_match['stopdate'].append(stopdate)
+                    #date = datetime.strptime(match.group(), '%Y%m%dT%H%M%S').date()
+            print(self.files_match)
+            list_len = len(self.files_match['filename'])
+            self.ui.number_of_files.setText(
+                '%d file(s) found in the selected time range.' % (list_len))
+        # Enable appropriate tabs
+        for streamname, filename in zip(self.files_match['stream'], self.files_match['filename']):
+            if streamname == 'xfel_sase1':
+                self.ui.streamtabs.setTabEnabled(0, True)
+                h5f = h5py.File(
+                        self.storagepath + '/'+filename, 'r')
+                self.datasets_list[streamname] = self.getdatasets('/', h5f)
+            if streamname == 'xfel_sase2':
+                self.ui.streamtabs.setTabEnabled(1, True)
+                h5f = h5py.File(
+                        self.storagepath + '/'+filename, 'r')
+                self.datasets_list[streamname] = self.getdatasets('/', h5f)
+            if streamname == 'xfel_sase3':
+                self.ui.streamtabs.setTabEnabled(2, True)
+                h5f = h5py.File(
+                        self.storagepath + '/'+filename, 'r')
+                self.datasets_list[streamname] = self.getdatasets('/', h5f)
+            if streamname == 'linac':
+                self.ui.streamtabs.setTabEnabled(3, True)
+                h5f = h5py.File(
+                        self.storagepath + '/'+filename, 'r')
+                self.datasets_list[streamname] = self.getdatasets('/', h5f)
+            self.channel_list[streamname].extend(
+                self.datasets_list[streamname])
 
-        for gp in h5f.keys():
-            #print(f'{gp} is a Group')
-            for subgp in h5f[gp].keys():
-                subgroup = gp + '/' + subgp
-                #print(f'{subgroup} is a Subgroup')
-                for chan in h5f[subgroup].keys():
-                    self.channel = subgroup + '/' + chan
-                    #print(f'{channel} is a Dataset')
-                    self.channel_list.append(self.channel)
-                    self.add_items()
-                    #for subchan in h5f[channel].keys():
-                    #    subchannel = channel + '/' + subchan
-                    #    print(f'{subchannel} is a Dataset')
+        #for filename in self.files_match['filename']:
+        #    h5f = h5py.File(
+        #            self.storagepath + '/'+filename, 'r')
+        #    self.datasets_list = self.getdatasets('/', h5f)
+        #    self.channel_list.extend(self.datasets_list)
+            #for gp in h5f.keys():
+            #    #print(f'{gp} is a Group')
+        #        for subgp in h5f[gp].keys():
+        #            subgroup = gp + '/' + subgp
+        #            #print(f'{subgroup} is a Subgroup')
+        #            for chan in h5f[subgroup].keys():
+        #                self.channel = subgroup + '/' + chan
+        #                #print(f'{channel} is a Dataset')
+        #                self.channel_list.append(self.channel)
+        #                self.add_items()
 
-        h5f.close()
+            #    subchannel = channel + '/' + subchan
+            #    print(f'{subchannel} is a Dataset')
+
+            h5f.close()
+        print('Dataset list', self.channel_list)
+
+        for channel in self.channel_list['xfel_sase1']:
+            self.add_items(channel)
+
         #keys = self.channel_group_list
         #values = self.channel_list
         #self.clusters = defaultdict(list)
@@ -122,13 +192,14 @@ class DAQApp(QWidget):
                     continue
                 if(xml.isStartElement()):
                     if(xml.name() == "NAME"):
-                        self.channel = str(xml.readElementText())
-                        self.channel_list.append(str(xml.readElementText()))
+                        self.channel_cat = str(xml.readElementText())
+                        self.channel_list_cat.append(
+                            str(xml.readElementText()))
                         rowcount = self.ui.treeWidget_2.topLevelItemCount()
                         item = QtWidgets.QTreeWidgetItem(rowcount)
                         self.ui.treeWidget_2.addTopLevelItem(item)
                         self.ui.treeWidget_2.topLevelItem(
-                            rowcount).setText(0, self.channel)
+                            rowcount).setText(0, self.channel_cat)
                         self.ui.treeWidget_2.topLevelItem(rowcount).setFlags(
                             self.ui.treeWidget_2.topLevelItem(rowcount).flags() | QtCore.Qt.ItemIsUserCheckable)
                         self.ui.treeWidget_2.topLevelItem(
@@ -155,18 +226,26 @@ class DAQApp(QWidget):
             f.close()
         self.ui.searchbar.setEnabled(True)
 
-    def add_items(self):
+    def add_items(self, channel):
         rowcount = self.ui.treeWidget.topLevelItemCount()
         item = QtWidgets.QTreeWidgetItem(rowcount)
         self.ui.treeWidget.addTopLevelItem(item)
         self.ui.treeWidget.topLevelItem(
-            rowcount).setText(0, self.channel)
+            rowcount).setText(0, channel)
         self.ui.treeWidget.topLevelItem(
             rowcount).setCheckState(0, QtCore.Qt.Unchecked)
         self.ui.treeWidget.topLevelItem(rowcount).setFlags(
             self.ui.treeWidget.topLevelItem(rowcount).flags() | QtCore.Qt.ItemIsUserCheckable)
         self.ui.treeWidget.topLevelItem(
             rowcount).setTextAlignment(0, QtCore.Qt.AlignLeft)
+        self.add_timeline_box(rowcount)
+        #self.ui.treeWidget.topLevelItem(
+        #rowcount).setBackground(1, QtGui.QColor(125, 125, 125))
+
+    def add_timeline_box(self, rowcount):
+        for column in range(1, self.tw_columns+1):
+            self.ui.treeWidget.topLevelItem(
+                rowcount).setBackground(column, QtGui.QColor(125, 125, 125))
 
     def clusters_check(self):
         self.clusters = {}
@@ -176,8 +255,8 @@ class DAQApp(QWidget):
             self.clusters['BEAM_ENERGY_MEASUREMENT'],  self.clusters['CHARGE'], self.clusters['HOLDSCOPE'], self.clusters['BHM'], self.clusters['KICKER'], \
             self.clusters['FARADAY'],  self.clusters['DCM'], self.clusters['BLM'] \
             = [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []
-        self.clusters['Select all'] = self.channel_list
-        for channel in self.channel_list:
+        self.clusters['Select all'] = self.channel_list['xfel_sase1']
+        for channel in self.channel_list['xfel_sase1']:
             if channel.find('BPM') != -1:
                 self.clusters['BPM'].append(channel)
             if channel.find('BAM.DAQ') != -1:
@@ -238,8 +317,15 @@ class DAQApp(QWidget):
                 if signal.checkState(0) == QtCore.Qt.Checked:
                     self.checked_list.append(signal.text(0))
             self.ui.status_text.setText(
-                'Selected channels')
+                'Writing files to output directory......')
+            print(self.checked_list)
+            self.ui.pushButton.setEnabled(False)
+            self.create_hdf5_file('1')
+            self.write_hdf5_files()
+            self.ui.status_text.setText(
+                'Files created successfully.')
             # ACTION
+            self.ui.pushButton.setEnabled(True)
         else:
             self.ui.status_text.setText('No channels selected')
 
@@ -272,28 +358,119 @@ class DAQApp(QWidget):
                 item = matching_items[0]  # Take the first.
                 item.setCheckState(0, QtCore.Qt.Checked)
 
+    def create_hdf5_file(self, ext):
+        now = datetime.now()
+        timestamp = now.strftime('%Y-%m-%dT%H:%M:%S') + \
+            ('-%02d' % (now.microsecond / 10000))
+
+        self.hd5file = 'xfel_' + self.start_timestamp_str + \
+            '_' + self.stop_timestamp_str + '_' + ext + '.hdf5'
+        print('writing into %s . . . ' % (self.hd5file), end='', flush=True)
+        self.fd = h5py.File(self.outpath
+                            + '/' + self.hd5file, "w")
+        # point to the default data to be plotted
+        self.fd.attrs[u'default'] = u'entry'
+        # give the HDF5 root some more attributes
+        self.fd.attrs[u'file_name'] = self.hd5file
+        self.fd.attrs[u'file_time'] = timestamp
+        self.fd.attrs[u'creator'] = os.path.basename(sys.argv[0])
+        self.fd.attrs[u'HDF5_Version'] = h5py.version.hdf5_version
+        self.fd.attrs[u'h5py_version'] = h5py.version.version
+
+    def write_hdf5_files(self):
+        with self.fd as new_data:
+            file_count = 1
+            for inputfile in self.files_match['filename']:
+                data = h5py.File(self.storagepath + '/'+inputfile, 'r')
+                # read as much datasets as possible from the old HDF5-file
+                datasets = self.getdatasets_filtered('/', data)
+                # get the group-names from the lists of datasets
+                groups = list(set([i[::-1].split('/', 1)[1][::-1]
+                                   for i in datasets]))
+                groups = [i for i in groups if len(i) > 0]
+
+                # sort groups based on depth
+                idx = np.argsort(np.array([len(i.split('/')) for i in groups]))
+                groups = [groups[i] for i in idx]
+
+                # create all groups that contain dataset that will be copied
+                for group in groups:
+                    if not group in new_data.keys():
+                        new_data.create_group(group)
+                    else:
+                        print(group, " is already in the file")
+
+                # copy datasets
+                for path in datasets:
+                    # - get group name
+                    group = path[::-1].split('/', 1)[1][::-1]
+                    # - minimum group name
+                    if len(group) == 0:
+                        group = '/'
+                        # - copy data
+                    print(path)
+                    data.copy(path, new_data[group])
+
+            sz = os.path.getsize(self.outpath + '/'+self.hd5file)
+            sz_MB = sz/1048576
+            if sz_MB > (self.ui.thresholdSpinBox.value()*1000):
+                file_count += 1
+                ext_inc = str(file_count)
+                self.create_hdf5_file(ext_inc)
+
+# function to return a list of paths to each dataset
+    def getdatasets_filtered(self, key, archive):
+        if key[-1] != '/':
+            key += '/'
+        out = []
+        for name in archive[key]:
+            if any(key[1:-1] in s for s in self.checked_list):
+                print('KEY', key[1:-1])
+                path = key + name
+
+                if isinstance(archive[path], h5py.Dataset):
+                    out += [path]
+                else:
+                    out += self.getdatasets_filtered(path, archive)
+        return out
+
+# function to return a list of paths to each dataset
+    def getdatasets(self, key, archive):
+        if key[-1] != '/':
+            key += '/'
+        out = []
+        for name in archive[key]:
+            print('KEY', key[1:-1])
+            path = key + name
+            if isinstance(archive[path], h5py.Dataset):
+                if (key[1:-1] not in out):
+                    out += [key[1:-1]]
+            else:
+                out += self.getdatasets(path, archive)
+        return out
+
     def choose_output_directory(self):  # self.parent.data_dir
         self.folderpath = QtWidgets.QFileDialog.getExistingDirectory(
             self, caption='Choose Directory', directory=os.getcwd())
         if self.folderpath != []:
             print(self.folderpath)
             self.ui.filenameEdit.setText(self.folderpath)
+            self.outpath = self.folderpath
             self.ui.pushButton.setEnabled(True)
             # Do Action
         else:
             self.ui.status_text.setText('No output directory selected')
 
     def select_hdf5_files(self):  # self.parent.data_dir
-        self.filepathlist, _ = QtWidgets.QFileDialog.getOpenFileNames(
-            self, "Pick hdf5 files", "/pnfs/desy.de/xfel", 'hdf5 (*.hdf5)', None, QtWidgets.QFileDialog.DontUseNativeDialog)
+        self.filepathlist = [f for f in listdir(
+            self.storagepath) if isfile(join(self.storagepath, f))]
+        #self.filepathlist, _ = QtWidgets.QFileDialog.getOpenFileNames(
+        #    self, "Pick hdf5 files", "/pnfs/desy.de/xfel", 'hdf5 (*.hdf5)', None, QtWidgets.QFileDialog.DontUseNativeDialog)
         if self.filepathlist != []:
-            print(self.filepathlist)
-            list_len = len(self.filepathlist)
-            self.ui.number_of_files.setText('%d file(s) selected' % (list_len))
-            self.ui.channelpb.setEnabled(True)
+            self.getChannelList()
         else:
-            self.ui.number_of_files.setText('No files selected')
-            self.ui.channelpb.setEnabled(False)
+            self.ui.number_of_files.setText(
+                'No files found in this time range.')
 
     def open_file_catalogue(self):  # self.parent.data_dir
         self.streampath_cat, _ = QtWidgets.QFileDialog.getOpenFileName(
