@@ -23,19 +23,27 @@ class DAQApp(QWidget):
         self.daterange = 0
         self.ui = Ui_Form()
         self.ui.setupUi(self)
-        self.ui.filtertable.setRowCount(0)
-        self.ui.filtertable.setColumnCount(1)
-        self.ui.filtertable.horizontalHeader().setStretchLastSection(True)
+
         self.channel_list = defaultdict(list)
+
         self.channel_group_list = []
         self.channels_selected = []
+        self.tablist = [self.ui.treeWidget, self.ui.treeWidget_3,
+                        self.ui.treeWidget_4, self.ui.treeWidget_5, self.ui.treeWidget_6]
+        self.filtertables = [self.ui.filtertable, self.ui.filtertable_2,
+                             self.ui.filtertable_3, self.ui.filtertable_4, self.ui.filtertable_5]
+        self.filterpbs = [self.ui.filterpb, self.ui.filterpb_2,
+                          self.ui.filterpb_3, self.ui.filterpb_4, self.ui.filterpb_5]
+        self.streams = ['xfel_sase1', 'xfel_sase2',
+                        'xfel_sase3', 'linac', 'karabo']
+        self.clusters = self.nested_dict(2, list)
         self.streampath = ''
         self.storagepath = '/Users/christiangrech/Documents/GitHub/XFEL-DAQ-Datastream-Parser/hdf5'
         self.outpath = os.getcwd() + '/out'
         # Disable buttons
         self.ui.loadcataloguepb.setEnabled(False)
         self.ui.pushButton.setEnabled(False)
-        self.ui.filterpb.setEnabled(False)
+
         self.xml_name_matches = ["main", "run", "chan", "dscr", ".xml"]
         self.ui.number_of_files.setText('No files selected')
 
@@ -50,35 +58,57 @@ class DAQApp(QWidget):
         self.ui.streamtabs.setTabEnabled(3, False)
         self.ui.streamtabs.setTabEnabled(4, False)
 
+        for filtertable, filterpb in zip(self.filtertables, self.filterpbs):
+            filtertable.setRowCount(0)
+            filtertable.setColumnCount(1)
+            filtertable.horizontalHeader().setStretchLastSection(True)
+            filtertable.setHorizontalHeaderLabels(['Filter by subsystem:'])
+            filtertable.setFont(QtGui.QFont('Arial', 10))
+            filterpb.setEnabled(False)
+
         # Push buttons
         self.ui.browsepb.clicked.connect(self.choose_output_directory)
         self.ui.filenameEdit.setText(self.outpath)
         self.ui.browsepb2.clicked.connect(self.open_file_catalogue)
         self.ui.loadcataloguepb.clicked.connect(self.getChannelListCatalogue)
         self.ui.pushButton.clicked.connect(self.find_checked)
-        self.ui.filterpb.clicked.connect(self.find_checked_filters)
+        self.ui.filterpb.clicked.connect(
+            lambda: self.find_checked_filters(self.streams[0]))
+        self.ui.filterpb_2.clicked.connect(
+            lambda: self.find_checked_filters(self.streams[1]))
+        self.ui.filterpb_3.clicked.connect(
+            lambda: self.find_checked_filters(self.streams[2]))
+        self.ui.filterpb_4.clicked.connect(
+            lambda: self.find_checked_filters(self.streams[3]))
+        self.ui.filterpb_5.clicked.connect(
+            lambda: self.find_checked_filters(self.streams[4]))
         self.ui.hdf5button.clicked.connect(self.select_hdf5_files)
 
         # table/ tree headers
+
+        for treeWidget in self.tablist:
+            treeWidget.setHeaderLabels(
+                ['Channel name', '', '', '', '', '', '', '', '', '', ''])
+            treeWidget.setHeaderLabels(
+                ['Channel name', '', '', '', '', '', '', '', '', '', ''])
+            treeWidget.setHeaderLabels(
+                ['Channel name', '', '', '', '', '', '', '', '', '', ''])
+            header = treeWidget.header()
+            header.setStretchLastSection(False)
+            header.setSectionResizeMode(
+                0, QtWidgets.QHeaderView.Stretch)
+            self.tw_columns = 10
+            for column in range(1, self.tw_columns+1):
+                header.setSectionResizeMode(
+                    column, QtWidgets.QHeaderView.ResizeToContents)
+
+        # Catalogue
+        self.ui.treeWidget_2.setHeaderLabels(
+            ['Channel name', 'Description', 'Unit'])
         header = self.ui.treeWidget_2.header()
         header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         header.setStretchLastSection(False)
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
-        self.ui.treeWidget.setHeaderLabels(
-            ['Channel name', '', '', '', '', '', '', '', '', '', ''])
-        header_main = self.ui.treeWidget.header()
-        header_main.setStretchLastSection(False)
-        header_main.setSectionResizeMode(
-            0, QtWidgets.QHeaderView.Stretch)
-        self.tw_columns = 10
-        for column in range(1, self.tw_columns+1):
-            header_main.setSectionResizeMode(
-                column, QtWidgets.QHeaderView.ResizeToContents)
-        self.ui.treeWidget_2.setHeaderLabels(
-            ['Channel name', 'Description', 'Unit'])
-        self.ui.filtertable.setHorizontalHeaderLabels(['Filter by subsystem:'])
-        self.ui.filtertable.setFont(QtGui.QFont('Arial', 10))
-        # Catalogue Search bar
         self.ui.searchbar.setEnabled(False)
         self.ui.searchbar.setPlaceholderText("Search...")
         self.ui.searchbar.textChanged.connect(self.search_bar)
@@ -120,53 +150,44 @@ class DAQApp(QWidget):
                 '%d file(s) found in the selected time range.' % (list_len))
         # Enable appropriate tabs
         for streamname, filename in zip(self.files_match['stream'], self.files_match['filename']):
-            if streamname == 'xfel_sase1':
+            if streamname == self.streams[0]:
                 self.ui.streamtabs.setTabEnabled(0, True)
                 h5f = h5py.File(
                         self.storagepath + '/'+filename, 'r')
                 self.datasets_list[streamname] = self.getdatasets('/', h5f)
-            if streamname == 'xfel_sase2':
+            if streamname == self.streams[1]:
                 self.ui.streamtabs.setTabEnabled(1, True)
                 h5f = h5py.File(
                         self.storagepath + '/'+filename, 'r')
                 self.datasets_list[streamname] = self.getdatasets('/', h5f)
-            if streamname == 'xfel_sase3':
+            if streamname == self.streams[2]:
                 self.ui.streamtabs.setTabEnabled(2, True)
                 h5f = h5py.File(
                         self.storagepath + '/'+filename, 'r')
                 self.datasets_list[streamname] = self.getdatasets('/', h5f)
-            if streamname == 'linac':
+            if streamname == self.streams[3]:
                 self.ui.streamtabs.setTabEnabled(3, True)
+                h5f = h5py.File(
+                        self.storagepath + '/'+filename, 'r')
+                self.datasets_list[streamname] = self.getdatasets('/', h5f)
+            if streamname == self.streams[4]:
+                self.ui.streamtabs.setTabEnabled(4, True)
                 h5f = h5py.File(
                         self.storagepath + '/'+filename, 'r')
                 self.datasets_list[streamname] = self.getdatasets('/', h5f)
             self.channel_list[streamname].extend(
                 self.datasets_list[streamname])
 
-        #for filename in self.files_match['filename']:
-        #    h5f = h5py.File(
-        #            self.storagepath + '/'+filename, 'r')
-        #    self.datasets_list = self.getdatasets('/', h5f)
-        #    self.channel_list.extend(self.datasets_list)
-            #for gp in h5f.keys():
-            #    #print(f'{gp} is a Group')
-        #        for subgp in h5f[gp].keys():
-        #            subgroup = gp + '/' + subgp
-        #            #print(f'{subgroup} is a Subgroup')
-        #            for chan in h5f[subgroup].keys():
-        #                self.channel = subgroup + '/' + chan
-        #                #print(f'{channel} is a Dataset')
-        #                self.channel_list.append(self.channel)
-        #                self.add_items()
-
-            #    subchannel = channel + '/' + subchan
-            #    print(f'{subchannel} is a Dataset')
-
             h5f.close()
-        print('Dataset list', self.channel_list)
+        #print('Dataset list', self.channel_list)
+        self.clusters = self.nested_dict(2, list)
 
-        for channel in self.channel_list['xfel_sase1']:
-            self.add_items(channel)
+        for stream in self.channel_list.keys():
+            print(stream)
+            for channel in self.channel_list[stream]:
+                self.add_items(channel, stream)
+            self.clusters_check(stream)
+        print(self.clusters)
 
         #keys = self.channel_group_list
         #values = self.channel_list
@@ -175,7 +196,6 @@ class DAQApp(QWidget):
         #for i, j in zip(keys, values):
         #    self.clusters[i].append(j)
         #self.fill_filter_table()
-        self.clusters_check()
 
     def getChannelListCatalogue(self):
         self.ui.treeWidget_2.clear()
@@ -226,17 +246,27 @@ class DAQApp(QWidget):
             f.close()
         self.ui.searchbar.setEnabled(True)
 
-    def add_items(self, channel):
-        rowcount = self.ui.treeWidget.topLevelItemCount()
+    def add_items(self, channel, stream):
+        if stream == self.streams[0]:
+            self.treeWidget = self.ui.treeWidget
+        elif stream == self.streams[1]:
+            self.treeWidget = self.ui.treeWidget_3
+        elif stream == self.streams[2]:
+            self.treeWidget = self.ui.treeWidget_4
+        elif stream == self.streams[3]:
+            self.treeWidget = self.ui.treeWidget_5
+        elif stream == self.streams[4]:
+            self.treeWidget = self.ui.treeWidget_6
+        rowcount = self.treeWidget.topLevelItemCount()
         item = QtWidgets.QTreeWidgetItem(rowcount)
-        self.ui.treeWidget.addTopLevelItem(item)
-        self.ui.treeWidget.topLevelItem(
+        self.treeWidget.addTopLevelItem(item)
+        self.treeWidget.topLevelItem(
             rowcount).setText(0, channel)
-        self.ui.treeWidget.topLevelItem(
+        self.treeWidget.topLevelItem(
             rowcount).setCheckState(0, QtCore.Qt.Unchecked)
-        self.ui.treeWidget.topLevelItem(rowcount).setFlags(
-            self.ui.treeWidget.topLevelItem(rowcount).flags() | QtCore.Qt.ItemIsUserCheckable)
-        self.ui.treeWidget.topLevelItem(
+        self.treeWidget.topLevelItem(rowcount).setFlags(
+            self.treeWidget.topLevelItem(rowcount).flags() | QtCore.Qt.ItemIsUserCheckable)
+        self.treeWidget.topLevelItem(
             rowcount).setTextAlignment(0, QtCore.Qt.AlignLeft)
         self.add_timeline_box(rowcount)
         #self.ui.treeWidget.topLevelItem(
@@ -244,80 +274,98 @@ class DAQApp(QWidget):
 
     def add_timeline_box(self, rowcount):
         for column in range(1, self.tw_columns+1):
-            self.ui.treeWidget.topLevelItem(
+            self.treeWidget.topLevelItem(
                 rowcount).setBackground(column, QtGui.QColor(125, 125, 125))
 
-    def clusters_check(self):
-        self.clusters = {}
-        self.clusters['Select all'], self.clusters['BPM'], self.clusters['BAM'], self.clusters['BCM'], self.clusters['XGM'], self.clusters['TOROID'], self.clusters[
-            'DAQ_INFO'], self.clusters['XGM_PROPERTIES'], self.clusters['SA1'], self.clusters['SA2'], self.clusters['SA3'], self.clusters['RF'], \
-            self.clusters['TIMINGINFO'],  self.clusters['MAGNET'], self.clusters['HOLDDMA'], self.clusters['CHICANE'], self.clusters['UNDULATOR'], \
-            self.clusters['BEAM_ENERGY_MEASUREMENT'],  self.clusters['CHARGE'], self.clusters['HOLDSCOPE'], self.clusters['BHM'], self.clusters['KICKER'], \
-            self.clusters['FARADAY'],  self.clusters['DCM'], self.clusters['BLM'] \
-            = [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []
-        self.clusters['Select all'] = self.channel_list['xfel_sase1']
-        for channel in self.channel_list['xfel_sase1']:
+    def clusters_check(self, stream):
+        if stream == self.streams[0]:
+            filtertable = self.ui.filtertable
+            filterpb = self.ui.filterpb
+        elif stream == self.streams[1]:
+            filtertable = self.ui.filtertable_2
+            filterpb = self.ui.filterpb_2
+        elif stream == self.streams[2]:
+            filtertable = self.ui.filtertable_3
+            filterpb = self.ui.filterpb_3
+        elif stream == self.streams[3]:
+            filtertable = self.ui.filtertable_4
+            filterpb = self.ui.filterpb_4
+        elif stream == self.streams[4]:
+            filtertable = self.ui.filtertable_5
+            filterpb = self.ui.filterpb_5
+        #self.clusters['Select all'], self.clusters['BPM'], self.clusters['BAM'], self.clusters['BCM'], self.clusters['XGM'], self.clusters['TOROID'], self.clusters[
+        #    'DAQ_INFO'], self.clusters['XGM_PROPERTIES'], self.clusters['SA1'], self.clusters['SA2'], self.clusters['SA3'], self.clusters['RF'], \
+        #    self.clusters['TIMINGINFO'],  self.clusters['MAGNET'], self.clusters['HOLDDMA'], self.clusters['CHICANE'], self.clusters['UNDULATOR'], \
+        #    self.clusters['BEAM_ENERGY_MEASUREMENT'],  self.clusters['CHARGE'], self.clusters['HOLDSCOPE'], self.clusters['BHM'], self.clusters['KICKER'], \
+        #    self.clusters['FARADAY'],  self.clusters['DCM'], self.clusters['BLM'] \
+        #    = [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []
+        self.clusters[stream]['Select all'] = self.channel_list[stream]
+        for channel in self.channel_list[stream]:
             if channel.find('BPM') != -1:
-                self.clusters['BPM'].append(channel)
+                self.clusters[stream]['BPM'].append(channel)
             if channel.find('BAM.DAQ') != -1:
-                self.clusters['BAM'].append(channel)
+                self.clusters[stream]['BAM'].append(channel)
             if channel.find('BCM/BCM') != -1:
-                self.clusters['BCM'].append(channel)
+                self.clusters[stream]['BCM'].append(channel)
             if channel.find('XGM/XGM') != -1:
-                self.clusters['XGM'].append(channel)
+                self.clusters[stream]['XGM'].append(channel)
             if channel.find('TOROID') != -1:
-                self.clusters['TOROID'].append(channel)
+                self.clusters[stream]['TOROID'].append(channel)
             if channel.find('DISTRIBUTOR') != -1:
-                self.clusters['DAQ_INFO'].append(channel)
+                self.clusters[stream]['DAQ_INFO'].append(channel)
             if channel.find('XGM.POSMON') != -1 or channel.find('XGM.CURRENT') != -1 or channel.find('XGM.TEMP') != -1 or channel.find('XGM.PHOTONFLUX') != -1 or channel.find('XGM.GAS') != -1 or channel.find('XGM.PRESSURE') != -1:
-                self.clusters['XGM_PROPERTIES'].append(channel)
+                self.clusters[stream]['XGM_PROPERTIES'].append(channel)
             if channel.find('SA1') != -1:
-                self.clusters['SA1'].append(channel)
+                self.clusters[stream]['SA1'].append(channel)
             if channel.find('SA2') != -1:
-                self.clusters['SA2'].append(channel)
+                self.clusters[stream]['SA2'].append(channel)
             if channel.find('SA3') != -1:
-                self.clusters['SA3'].append(channel)
+                self.clusters[stream]['SA3'].append(channel)
             if channel.find('TIMINGINFO') != -1:
-                self.clusters['TIMINGINFO'].append(channel)
+                self.clusters[stream]['TIMINGINFO'].append(channel)
             if channel.find('MAGNETS/MAGNET') != -1:
-                self.clusters['MAGNET'].append(channel)
+                self.clusters[stream]['MAGNET'].append(channel)
             if channel.find('HOLDDMA') != -1:
-                self.clusters['HOLDDMA'].append(channel)
+                self.clusters[stream]['HOLDDMA'].append(channel)
             if channel.find('CHICANE') != -1:
-                self.clusters['CHICANE'].append(channel)
+                self.clusters[stream]['CHICANE'].append(channel)
             if channel.find('UNDULATOR') != -1:
-                self.clusters['UNDULATOR'].append(channel)
+                self.clusters[stream]['UNDULATOR'].append(channel)
             if channel.find('RF/MODULATOR') != -1:
-                self.clusters['RF'].append(channel)
+                self.clusters[stream]['RF'].append(channel)
             if channel.find('BEAM_ENERGY_MEASUREMENT') != -1:
-                self.clusters['BEAM_ENERGY_MEASUREMENT'].append(channel)
+                self.clusters[stream]['BEAM_ENERGY_MEASUREMENT'].append(
+                    channel)
             if channel.find('CHARGE.ML') != -1:
-                self.clusters['CHARGE'].append(channel)
+                self.clusters[stream]['CHARGE'].append(channel)
             if channel.find('HOLDSCOPE') != -1:
-                self.clusters['HOLDSCOPE'].append(channel)
+                self.clusters[stream]['HOLDSCOPE'].append(channel)
             if channel.find('BHM/BHM') != -1:
-                self.clusters['BHM'].append(channel)
+                self.clusters[stream]['BHM'].append(channel)
             if channel.find('KICKER.ADC') != -1:
-                self.clusters['KICKER'].append(channel)
+                self.clusters[stream]['KICKER'].append(channel)
             if channel.find('FARADAY') != -1:
-                self.clusters['FARADAY'].append(channel)
+                self.clusters[stream]['FARADAY'].append(channel)
             if channel.find('DCM/DCM') != -1:
-                self.clusters['DCM'].append(channel)
+                self.clusters[stream]['DCM'].append(channel)
             if channel.find('BLM/BLM') != -1:
-                self.clusters['BLM'].append(channel)
-        self.fill_filter_table()
+                self.clusters[stream]['BLM'].append(channel)
+        self.fill_filter_table(filtertable, stream)
+        filterpb.setEnabled(True)
 
     def find_checked(self):
-        self.checked_list = list()
-        root = self.ui.treeWidget.invisibleRootItem()
-        signal_count = root.childCount()
-        if signal_count > 0:
-            for i in range(signal_count):
-                signal = root.child(i)
-                if signal.checkState(0) == QtCore.Qt.Checked:
-                    self.checked_list.append(signal.text(0))
+        self.checked_list = []
+        for treeView in self.tablist:
+            root = treeView.invisibleRootItem()
+            signal_count = root.childCount()
+            if signal_count > 0:
+                for i in range(signal_count):
+                    signal = root.child(i)
+                    if signal.checkState(0) == QtCore.Qt.Checked:
+                        self.checked_list.append(signal.text(0))
+        if self.checked_list != []:
             self.ui.status_text.setText(
-                'Writing files to output directory......')
+                    'Writing files to output directory......')
             print(self.checked_list)
             self.ui.pushButton.setEnabled(False)
             self.create_hdf5_file('1')
@@ -329,20 +377,35 @@ class DAQApp(QWidget):
         else:
             self.ui.status_text.setText('No channels selected')
 
-    def find_checked_filters(self):
-        self.checked_filter_list = []
+    def find_checked_filters(self, stream):
+        self.checked_filter_list = defaultdict(list)
         selected_channels = []
-        for i in range(self.ui.filtertable.rowCount()):
-            if self.ui.filtertable.item(i, 0).checkState() == QtCore.Qt.Checked:
-                self.checked_filter_list.append(
-                    self.ui.filtertable.item(i, 0).text())
+        if stream == self.streams[0]:
+            filtertable = self.ui.filtertable
+            treeWidget = self.ui.treeWidget
+        elif stream == self.streams[1]:
+            filtertable = self.ui.filtertable_2
+            treeWidget = self.ui.treeWidget_3
+        elif stream == self.streams[2]:
+            filtertable = self.ui.filtertable_3
+            treeWidget = self.ui.treeWidget_4
+        elif stream == self.streams[3]:
+            filtertable = self.ui.filtertable_4
+            treeWidget = self.ui.treeWidget_5
+        elif stream == self.streams[4]:
+            filtertable = self.ui.filtertable_5
+            treeWidget = self.ui.treeWidget_6
+        for i in range(filtertable.rowCount()):
+            if filtertable.item(i, 0).checkState() == QtCore.Qt.Checked:
+                self.checked_filter_list[stream].append(
+                    filtertable.item(i, 0).text())
             else:
                 pass
-        selected_channels = [self.clusters[x]
-                             for x in self.checked_filter_list]
+        selected_channels = [self.clusters[stream][x]
+                             for x in self.checked_filter_list[stream]]
         flat_list = [item for sublist in selected_channels for item in sublist]
         # Uncheck current items
-        root = self.ui.treeWidget.invisibleRootItem()
+        root = treeWidget.invisibleRootItem()
         signal_count = root.childCount()
         if signal_count > 0:
             for i in range(signal_count):
@@ -351,7 +414,7 @@ class DAQApp(QWidget):
                     signal.setCheckState(0, QtCore.Qt.Unchecked)
         # Check items in filter
         for channel in flat_list:
-            matching_items = self.ui.treeWidget.findItems(
+            matching_items = treeWidget.findItems(
                 channel, Qt.MatchExactly)
             if matching_items:
                 # We have found something.
@@ -425,7 +488,7 @@ class DAQApp(QWidget):
         out = []
         for name in archive[key]:
             if any(key[1:-1] in s for s in self.checked_list):
-                print('KEY', key[1:-1])
+                #print('KEY', key[1:-1])
                 path = key + name
 
                 if isinstance(archive[path], h5py.Dataset):
@@ -440,7 +503,7 @@ class DAQApp(QWidget):
             key += '/'
         out = []
         for name in archive[key]:
-            print('KEY', key[1:-1])
+            #print('KEY', key[1:-1])
             path = key + name
             if isinstance(archive[path], h5py.Dataset):
                 if (key[1:-1] not in out):
@@ -483,22 +546,27 @@ class DAQApp(QWidget):
         else:
             self.ui.filenameEdit2.setText('')
 
-    def fill_filter_table(self):
-        self.ui.filtertable.setRowCount(0)
-        for row, key in enumerate(self.clusters):
-            if self.clusters[key] == []:
+    def fill_filter_table(self, filtertable, stream):
+        filtertable.setRowCount(0)
+        for row, key in enumerate(self.clusters[stream]):
+            if self.clusters[stream][key] == []:
                 pass
             else:
-                rowPosition = self.ui.filtertable.rowCount()
-                self.ui.filtertable.insertRow(rowPosition)  # insert new row
+                rowPosition = filtertable.rowCount()
+                filtertable.insertRow(rowPosition)  # insert new row
                 chkBoxItem = QtWidgets.QTableWidgetItem(key)
                 chkBoxItem.setText(key)
                 chkBoxItem.setFlags(QtCore.Qt.ItemIsUserCheckable
                                     | QtCore.Qt.ItemIsEnabled)
                 chkBoxItem.setCheckState(QtCore.Qt.Unchecked)
-                self.ui.filtertable.setItem(
+                filtertable.setItem(
                     rowPosition, 0, chkBoxItem)
-        self.ui.filterpb.setEnabled(True)
+
+    def nested_dict(self, n, type):
+        if n == 1:
+            return defaultdict(type)
+        else:
+            return defaultdict(lambda: self.nested_dict(n-1, type))
 
     def search_bar(self, s):
         # Clear current selection.
