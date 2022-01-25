@@ -14,6 +14,7 @@ import shutil
 import subprocess
 scriptpath = "../"
 
+timing_channel = 'XFEL.DIAG/TIMINGINFO/TIME1.BUNCH_PATTERN'
 name_tag = 'NAME'
 channel_list = []
 # Add the directory containing your module to the Python path (wants absolute paths)
@@ -79,6 +80,7 @@ def pre_conversion(argv):
     dout = None
     bit1 = None
     bit2 = None
+    dest = None
     try:
         opts, args = getopt.getopt(
             argv, "hs:t:c:d:o", ["start=", "stop=", "xmldfile=", "dest=", "dout="])
@@ -163,6 +165,15 @@ def pre_conversion(argv):
     for s in itemlist:
         channel_list.append(s.firstChild.nodeValue)
 
+    if timing_channel not in channel_list:
+        print("%s is not in list." % (timing_channel))
+        #    bunchfilter = 'all'
+        sys.exit(-1)
+
+    indx = channel_list.index(timing_channel)
+    if indx != 0:
+        channel_list[0], channel_list[indx] = channel_list[indx], channel_list[0]
+
     streamname = os.path.basename(xmldfile).split('_main')[0]
     print('Detected stream: ', streamname)
     # saving the updated XML request file
@@ -195,6 +206,6 @@ if __name__ == "__main__":
     stopstring = stopstring.replace(':', '')
 
     command = "export PYTHONPATH=/beegfs/desy/group/mpa/fla/software/daq/libs/CentOS-7-x86_64; export LD_LIBRARY_PATH=/beegfs/desy/group/mpa/fla/software/daq/libs/CentOS-7-x86_64:/beegfs/desy/group/mpa/fla/software/daq/libs/CentOS-7-x86_64/extlib; python3 daqraw2hdf5_filter.py -xml %s -xfel -onefile -local -descr %s -logic AND -dest %s,\%s -tstart %s -tstop %s -filt %s" % (
-        xmlfile, xmldfile, filter_bit1, filter_bit2, startstring, stopstring, bunchfilter)
+        '~/Documents/Datastream/SASE2_BPM_extraction/linac.xml', xmldfile, filter_bit1, filter_bit2, startstring, stopstring, bunchfilter)
     print(command)
     subprocess.run(command, shell=True)

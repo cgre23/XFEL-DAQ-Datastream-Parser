@@ -2,6 +2,7 @@ import sys
 import string
 import os
 import numpy as np
+import pandas as pd
 from os import listdir
 from os.path import isfile, join
 import h5py
@@ -12,6 +13,8 @@ from gui.UIdaq import Ui_Form
 import shutil
 import re
 from datetime import datetime
+#from PyQt5.QtChart import QChart, QChartView, QBarSet, \
+#    QPercentBarSeries, QBarCategoryAxis
 #import classes.trie as trie
 from collections import defaultdict
 
@@ -45,7 +48,7 @@ class DAQApp(QWidget):
         self.ui.pushButton.setEnabled(False)
 
         self.xml_name_matches = ["main", "run", "chan", "dscr", ".xml"]
-        self.ui.number_of_files.setText('No files selected')
+        self.ui.number_of_files.setText('No files selected.')
 
         # Timestamp
         self.ui.startdate.setDateTime(QtCore.QDateTime.currentDateTime())
@@ -65,6 +68,14 @@ class DAQApp(QWidget):
             filtertable.setHorizontalHeaderLabels(['Filter by subsystem:'])
             filtertable.setFont(QtGui.QFont('Arial', 10))
             filterpb.setEnabled(False)
+
+        self.tw_columns = 10
+        self.ui.timeline.setRowCount(1)
+        self.ui.timeline.setColumnCount(self.tw_columns+1)
+        self.ui.timeline.horizontalHeader().setVisible(False)
+        self.ui.timeline.verticalHeader().setVisible(False)
+        self.timeline_colors = [QtGui.QColor(
+            255, 0, 0), QtGui.QColor(0, 0, 255), QtGui.QColor(255, 255, 0), QtGui.QColor(0, 255, 0), QtGui.QColor(102, 0, 204), QtGui.QColor(255, 0, 0), ]
 
         # Push buttons
         self.ui.browsepb.clicked.connect(self.choose_output_directory)
@@ -88,19 +99,19 @@ class DAQApp(QWidget):
 
         for treeWidget in self.tablist:
             treeWidget.setHeaderLabels(
-                ['Channel name', '', '', '', '', '', '', '', '', '', ''])
+                ['Channel name'])
             treeWidget.setHeaderLabels(
-                ['Channel name', '', '', '', '', '', '', '', '', '', ''])
+                ['Channel name'])
             treeWidget.setHeaderLabels(
-                ['Channel name', '', '', '', '', '', '', '', '', '', ''])
+                ['Channel name'])
             header = treeWidget.header()
-            header.setStretchLastSection(False)
-            header.setSectionResizeMode(
-                0, QtWidgets.QHeaderView.Stretch)
-            self.tw_columns = 10
-            for column in range(1, self.tw_columns+1):
-                header.setSectionResizeMode(
-                    column, QtWidgets.QHeaderView.ResizeToContents)
+            header.setStretchLastSection(True)
+            #header.setSectionResizeMode(
+            #    0, QtWidgets.QHeaderView.Stretch)
+
+            #for column in range(1, self.tw_columns+1):
+            #    header.setSectionResizeMode(
+            #        column, QtWidgets.QHeaderView.ResizeToContents)
 
         # Catalogue
         self.ui.treeWidget_2.setHeaderLabels(
@@ -116,19 +127,30 @@ class DAQApp(QWidget):
     def getChannelList(self):
         #Open XML file Tab 1
         self.ui.treeWidget.clear()
+        for treeWidget in self.tablist:
+            treeWidget.clear()
+        for filtertable, filterpb in zip(self.filtertables, self.filterpbs):
+            filtertable.setRowCount(0)
+            filterpb.setEnabled(False)
+        self.ui.timeline.setRowCount(1)
         self.ui.status_text.setText(
             '')
         self.channel_list = defaultdict(list)
         self.datasets_list = defaultdict(list)
         start_timestamp = self.ui.startdate.dateTime()
+        self.start_t = start_timestamp.toPyDateTime()
         self.start_timestamp_str = start_timestamp.toString(
             'yyyyMMddTHHmmss')
         stop_timestamp_min = start_timestamp.addSecs(1)
         self.ui.stopdate.setMinimumDateTime(stop_timestamp_min)
         stop_timestamp = self.ui.stopdate.dateTime()
+        self.stop_t = stop_timestamp.toPyDateTime()
         self.stop_timestamp_str = stop_timestamp.toString(
             'yyyyMMddTHHmmss')
+        difference = (self.stop_t - self.start_t)
+        self.total_seconds = difference.total_seconds()
         self.files_match = defaultdict(list)
+        self.timeline = self.nested_dict(2, list)
         if self.filepathlist != []:
             self.ui.pushButton.setEnabled(True)
             for file in self.filepathlist:
@@ -140,14 +162,23 @@ class DAQApp(QWidget):
                         match.group(0).split('_')[1], '%Y%m%dT%H%M%S')
                     if startdate >= start_timestamp and stopdate <= stop_timestamp:
                         self.files_match['filename'].append(file)
-                        self.files_match['stream'].append(file.split('_2')[0])
+                        stream = file.split('_2')[0]
+                        self.files_match['stream'].append(stream)
                         self.files_match['startdate'].append(startdate)
                         self.files_match['stopdate'].append(stopdate)
+                        difference_1 = (startdate - self.start_t)
+                        marker_1 = difference_1.total_seconds()
+                        self.timeline[stream]['start_diff'].append(
+                            marker_1/self.total_seconds)
+                        difference_2 = (stopdate - self.start_t)
+                        marker_2 = difference_2.total_seconds()
+                        self.timeline[stream]['stop_diff'].append(
+                            marker_2/self.total_seconds)
                     #date = datetime.strptime(match.group(), '%Y%m%dT%H%M%S').date()
             print(self.files_match)
             list_len = len(self.files_match['filename'])
             self.ui.number_of_files.setText(
-                '%d file(s) found in the selected time range.' % (list_len))
+                '%d file(s) found.' % (list_len))
         # Enable appropriate tabs
         for streamname, filename in zip(self.files_match['stream'], self.files_match['filename']):
             if streamname == self.streams[0]:
@@ -155,6 +186,7 @@ class DAQApp(QWidget):
                 h5f = h5py.File(
                         self.storagepath + '/'+filename, 'r')
                 self.datasets_list[streamname] = self.getdatasets('/', h5f)
+                #self.ui.streamtabs.setCurrentIndex(0)
             if streamname == self.streams[1]:
                 self.ui.streamtabs.setTabEnabled(1, True)
                 h5f = h5py.File(
@@ -177,25 +209,42 @@ class DAQApp(QWidget):
                 self.datasets_list[streamname] = self.getdatasets('/', h5f)
             self.channel_list[streamname].extend(
                 self.datasets_list[streamname])
-
             h5f.close()
         #print('Dataset list', self.channel_list)
+        # Create a nested dictionary clusters[stream][clustername]
         self.clusters = self.nested_dict(2, list)
+        date_list = pd.date_range(
+            start=self.start_t, end=self.stop_t, periods=10).to_pydatetime().tolist()
+        print(date_list)
+        self.ui.timeline.setRowCount(len(self.channel_list.keys())+1)
 
+        for column in range(1, self.tw_columns+1):
+            self.ui.timeline.setItem(0, column, QtWidgets.QTableWidgetItem(
+                date_list[column-1].strftime("%b %d %H:%M")))
+        idx = 0
         for stream in self.channel_list.keys():
-            print(stream)
+            idx = idx + 1
+            self.add_timeline(idx, stream)
             for channel in self.channel_list[stream]:
                 self.add_items(channel, stream)
             self.clusters_check(stream)
         print(self.clusters)
+        self.ui.timeline.resizeRowsToContents()
 
-        #keys = self.channel_group_list
-        #values = self.channel_list
-        #self.clusters = defaultdict(list)
-        #self.clusters['Select all'] = self.channel_list
-        #for i, j in zip(keys, values):
-        #    self.clusters[i].append(j)
-        #self.fill_filter_table()
+    def add_timeline(self, idx, stream):
+        title = QtWidgets.QTableWidgetItem(stream)
+        self.ui.timeline.setItem(idx, 0, title)
+
+        boxes = QtWidgets.QTableWidgetItem('')
+        boxes.setBackground(self.timeline_colors[idx-1])
+        start_times = np.rint(
+            np.multiply(self.timeline[stream]['start_diff'], self.tw_columns))
+        stop_times = np.rint(
+            np.multiply(self.timeline[stream]['stop_diff'], self.tw_columns))
+        for start, stop in zip(start_times, stop_times):
+            for column in range(1, self.tw_columns+1):
+                if column >= start and column <= stop:
+                    self.ui.timeline.setItem(idx, column, boxes)
 
     def getChannelListCatalogue(self):
         self.ui.treeWidget_2.clear()
@@ -268,14 +317,10 @@ class DAQApp(QWidget):
             self.treeWidget.topLevelItem(rowcount).flags() | QtCore.Qt.ItemIsUserCheckable)
         self.treeWidget.topLevelItem(
             rowcount).setTextAlignment(0, QtCore.Qt.AlignLeft)
-        self.add_timeline_box(rowcount)
+
+        #self.add_timeline_box(rowcount, start_times, stop_times)
         #self.ui.treeWidget.topLevelItem(
         #rowcount).setBackground(1, QtGui.QColor(125, 125, 125))
-
-    def add_timeline_box(self, rowcount):
-        for column in range(1, self.tw_columns+1):
-            self.treeWidget.topLevelItem(
-                rowcount).setBackground(column, QtGui.QColor(125, 125, 125))
 
     def clusters_check(self, stream):
         if stream == self.streams[0]:
@@ -533,7 +578,7 @@ class DAQApp(QWidget):
             self.getChannelList()
         else:
             self.ui.number_of_files.setText(
-                'No files found in this time range.')
+                'No files found.')
 
     def open_file_catalogue(self):  # self.parent.data_dir
         self.streampath_cat, _ = QtWidgets.QFileDialog.getOpenFileName(

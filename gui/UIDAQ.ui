@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>1331</width>
-    <height>640</height>
+    <height>698</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -46,10 +46,10 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="1">
+       <item row="2" column="1">
         <widget class="QTabWidget" name="streamtabs">
          <property name="currentIndex">
-          <number>3</number>
+          <number>0</number>
          </property>
          <widget class="QWidget" name="tab_3">
           <attribute name="title">
@@ -61,6 +61,22 @@
              <property name="text">
               <string>Apply Filter</string>
              </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QTableWidget" name="filtertable">
+             <property name="maximumSize">
+              <size>
+               <width>300</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="columnCount">
+              <number>0</number>
+             </property>
+             <attribute name="verticalHeaderVisible">
+              <bool>false</bool>
+             </attribute>
             </widget>
            </item>
            <item row="0" column="0" rowspan="2">
@@ -87,10 +103,10 @@
               <bool>false</bool>
              </property>
              <property name="headerHidden">
-              <bool>false</bool>
+              <bool>true</bool>
              </property>
              <property name="columnCount">
-              <number>11</number>
+              <number>1</number>
              </property>
              <attribute name="headerVisible">
               <bool>false</bool>
@@ -115,72 +131,6 @@
                <set>AlignCenter</set>
               </property>
              </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QTableWidget" name="filtertable">
-             <property name="maximumSize">
-              <size>
-               <width>300</width>
-               <height>16777215</height>
-              </size>
-             </property>
-             <property name="columnCount">
-              <number>0</number>
-             </property>
-             <attribute name="verticalHeaderVisible">
-              <bool>false</bool>
-             </attribute>
             </widget>
            </item>
           </layout>
@@ -237,10 +187,10 @@
               <bool>false</bool>
              </property>
              <property name="headerHidden">
-              <bool>false</bool>
+              <bool>true</bool>
              </property>
              <property name="columnCount">
-              <number>11</number>
+              <number>1</number>
              </property>
              <attribute name="headerVisible">
               <bool>false</bool>
@@ -263,56 +213,6 @@
               </property>
               <property name="textAlignment">
                <set>AlignCenter</set>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
               </property>
              </column>
             </widget>
@@ -364,10 +264,10 @@
               <bool>false</bool>
              </property>
              <property name="headerHidden">
-              <bool>false</bool>
+              <bool>true</bool>
              </property>
              <property name="columnCount">
-              <number>11</number>
+              <number>1</number>
              </property>
              <attribute name="headerVisible">
               <bool>false</bool>
@@ -392,56 +292,6 @@
                <set>AlignCenter</set>
               </property>
              </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
             </widget>
            </item>
            <item row="1" column="1">
@@ -458,7 +308,7 @@
            <string>LINAC</string>
           </attribute>
           <layout class="QGridLayout" name="gridLayout_8">
-           <item row="0" column="1">
+           <item row="0" column="2">
             <widget class="QTableWidget" name="filtertable_4">
              <property name="maximumSize">
               <size>
@@ -474,14 +324,14 @@
              </attribute>
             </widget>
            </item>
-           <item row="1" column="1">
+           <item row="1" column="2">
             <widget class="QPushButton" name="filterpb_4">
              <property name="text">
               <string>Apply Filter</string>
              </property>
             </widget>
            </item>
-           <item row="0" column="0" rowspan="2">
+           <item row="0" column="1" rowspan="2">
             <widget class="QTreeWidget" name="treeWidget_5">
              <property name="tabletTracking">
               <bool>false</bool>
@@ -505,10 +355,10 @@
               <bool>false</bool>
              </property>
              <property name="headerHidden">
-              <bool>false</bool>
+              <bool>true</bool>
              </property>
              <property name="columnCount">
-              <number>11</number>
+              <number>1</number>
              </property>
              <attribute name="headerVisible">
               <bool>false</bool>
@@ -531,56 +381,6 @@
               </property>
               <property name="textAlignment">
                <set>AlignCenter</set>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
               </property>
              </column>
             </widget>
@@ -639,10 +439,10 @@
               <bool>false</bool>
              </property>
              <property name="headerHidden">
-              <bool>false</bool>
+              <bool>true</bool>
              </property>
              <property name="columnCount">
-              <number>11</number>
+              <number>1</number>
              </property>
              <attribute name="headerVisible">
               <bool>false</bool>
@@ -667,56 +467,6 @@
                <set>AlignCenter</set>
               </property>
              </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string/>
-              </property>
-             </column>
             </widget>
            </item>
           </layout>
@@ -731,6 +481,12 @@
          <layout class="QGridLayout" name="gridLayout">
           <item row="3" column="0">
            <widget class="QLabel" name="label_3">
+            <property name="maximumSize">
+             <size>
+              <width>200</width>
+              <height>16777215</height>
+             </size>
+            </property>
             <property name="text">
              <string>Output directory:</string>
             </property>
@@ -755,6 +511,12 @@
           </item>
           <item row="0" column="0">
            <widget class="QLabel" name="startlabel">
+            <property name="maximumSize">
+             <size>
+              <width>100</width>
+              <height>16777215</height>
+             </size>
+            </property>
             <property name="text">
              <string>Start time:</string>
             </property>
@@ -866,8 +628,14 @@
             </property>
            </widget>
           </item>
-          <item row="1" column="0" colspan="2">
+          <item row="0" column="5">
            <widget class="QLabel" name="number_of_files">
+            <property name="minimumSize">
+             <size>
+              <width>200</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="maximumSize">
              <size>
               <width>600</width>
@@ -880,6 +648,22 @@
            </widget>
           </item>
          </layout>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QTableWidget" name="timeline">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>100</height>
+          </size>
+         </property>
+         <property name="editTriggers">
+          <set>QAbstractItemView::NoEditTriggers</set>
+         </property>
+         <attribute name="horizontalHeaderVisible">
+          <bool>false</bool>
+         </attribute>
         </widget>
        </item>
       </layout>
