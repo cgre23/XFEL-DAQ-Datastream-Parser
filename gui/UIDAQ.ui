@@ -49,7 +49,7 @@
        <item row="2" column="1">
         <widget class="QTabWidget" name="streamtabs">
          <property name="currentIndex">
-          <number>0</number>
+          <number>4</number>
          </property>
          <widget class="QWidget" name="tab_3">
           <attribute name="title">
@@ -389,7 +389,7 @@
          </widget>
          <widget class="QWidget" name="tab_7">
           <attribute name="title">
-           <string>KARABO</string>
+           <string>EXTRA_DATA</string>
           </attribute>
           <layout class="QGridLayout" name="gridLayout_4">
            <item row="0" column="1">

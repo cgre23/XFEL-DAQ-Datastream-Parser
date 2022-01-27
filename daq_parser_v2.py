@@ -13,6 +13,9 @@ from gui.UIdaq import Ui_Form
 import shutil
 import re
 from datetime import datetime
+from functools import reduce
+import pyarrow as pa
+import pyarrow.parquet as pq
 #from PyQt5.QtChart import QChart, QChartView, QBarSet, \
 #    QPercentBarSeries, QBarCategoryAxis
 #import classes.trie as trie
@@ -26,9 +29,8 @@ class DAQApp(QWidget):
         self.daterange = 0
         self.ui = Ui_Form()
         self.ui.setupUi(self)
-
         self.channel_list = defaultdict(list)
-
+        self.channel_list_cat = []
         self.channel_group_list = []
         self.channels_selected = []
         self.tablist = [self.ui.treeWidget, self.ui.treeWidget_3,
@@ -38,7 +40,7 @@ class DAQApp(QWidget):
         self.filterpbs = [self.ui.filterpb, self.ui.filterpb_2,
                           self.ui.filterpb_3, self.ui.filterpb_4, self.ui.filterpb_5]
         self.streams = ['xfel_sase1', 'xfel_sase2',
-                        'xfel_sase3', 'linac', 'karabo']
+                        'xfel_sase3', 'linac', 'extra_data']
         self.clusters = self.nested_dict(2, list)
         self.streampath = ''
         self.storagepath = '/Users/christiangrech/Documents/GitHub/XFEL-DAQ-Datastream-Parser/hdf5'
@@ -127,11 +129,14 @@ class DAQApp(QWidget):
     def getChannelList(self):
         #Open XML file Tab 1
         self.ui.treeWidget.clear()
+
         for treeWidget in self.tablist:
             treeWidget.clear()
         for filtertable, filterpb in zip(self.filtertables, self.filterpbs):
             filtertable.setRowCount(0)
             filterpb.setEnabled(False)
+        for tab in range(0, len(self.streams)-1):
+            self.ui.streamtabs.setTabEnabled(tab, False)
         self.ui.timeline.setRowCount(1)
         self.ui.status_text.setText(
             '')
@@ -160,7 +165,7 @@ class DAQApp(QWidget):
                         match.group(0).split('_')[0], '%Y%m%dT%H%M%S')
                     stopdate = datetime.strptime(
                         match.group(0).split('_')[1], '%Y%m%dT%H%M%S')
-                    if startdate >= start_timestamp and stopdate <= stop_timestamp:
+                    if (startdate >= start_timestamp and stopdate <= stop_timestamp) or (stopdate >= start_timestamp and startdate <= stop_timestamp):
                         self.files_match['filename'].append(file)
                         stream = file.split('_2')[0]
                         self.files_match['stream'].append(stream)
@@ -186,7 +191,6 @@ class DAQApp(QWidget):
                 h5f = h5py.File(
                         self.storagepath + '/'+filename, 'r')
                 self.datasets_list[streamname] = self.getdatasets('/', h5f)
-                #self.ui.streamtabs.setCurrentIndex(0)
             if streamname == self.streams[1]:
                 self.ui.streamtabs.setTabEnabled(1, True)
                 h5f = h5py.File(
@@ -210,12 +214,17 @@ class DAQApp(QWidget):
             self.channel_list[streamname].extend(
                 self.datasets_list[streamname])
             h5f.close()
+
+        # Switch current tab to one of the streams
+        if self.files_match['stream'] != []:
+            self.ui.streamtabs.setCurrentIndex(
+                self.streams.index(self.files_match['stream'][0]))
         #print('Dataset list', self.channel_list)
         # Create a nested dictionary clusters[stream][clustername]
         self.clusters = self.nested_dict(2, list)
         date_list = pd.date_range(
             start=self.start_t, end=self.stop_t, periods=10).to_pydatetime().tolist()
-        print(date_list)
+        #print(date_list)
         self.ui.timeline.setRowCount(len(self.channel_list.keys())+1)
 
         for column in range(1, self.tw_columns+1):
@@ -228,21 +237,26 @@ class DAQApp(QWidget):
             for channel in self.channel_list[stream]:
                 self.add_items(channel, stream)
             self.clusters_check(stream)
-        print(self.clusters)
+        #print(self.clusters)
         self.ui.timeline.resizeRowsToContents()
 
     def add_timeline(self, idx, stream):
         title = QtWidgets.QTableWidgetItem(stream)
         self.ui.timeline.setItem(idx, 0, title)
-
         boxes = QtWidgets.QTableWidgetItem('')
         boxes.setBackground(self.timeline_colors[idx-1])
         start_times = np.rint(
             np.multiply(self.timeline[stream]['start_diff'], self.tw_columns))
         stop_times = np.rint(
             np.multiply(self.timeline[stream]['stop_diff'], self.tw_columns))
+        print('Start', start_times)
+        print('Stop', stop_times)
         for start, stop in zip(start_times, stop_times):
-            for column in range(1, self.tw_columns+1):
+            if start == 0:
+                start = 1
+            if stop == 0:
+                stop = 1
+            for column in range(1, self.tw_columns):
                 if column >= start and column <= stop:
                     self.ui.timeline.setItem(idx, column, boxes)
 
@@ -338,12 +352,6 @@ class DAQApp(QWidget):
         elif stream == self.streams[4]:
             filtertable = self.ui.filtertable_5
             filterpb = self.ui.filterpb_5
-        #self.clusters['Select all'], self.clusters['BPM'], self.clusters['BAM'], self.clusters['BCM'], self.clusters['XGM'], self.clusters['TOROID'], self.clusters[
-        #    'DAQ_INFO'], self.clusters['XGM_PROPERTIES'], self.clusters['SA1'], self.clusters['SA2'], self.clusters['SA3'], self.clusters['RF'], \
-        #    self.clusters['TIMINGINFO'],  self.clusters['MAGNET'], self.clusters['HOLDDMA'], self.clusters['CHICANE'], self.clusters['UNDULATOR'], \
-        #    self.clusters['BEAM_ENERGY_MEASUREMENT'],  self.clusters['CHARGE'], self.clusters['HOLDSCOPE'], self.clusters['BHM'], self.clusters['KICKER'], \
-        #    self.clusters['FARADAY'],  self.clusters['DCM'], self.clusters['BLM'] \
-        #    = [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []
         self.clusters[stream]['Select all'] = self.channel_list[stream]
         for channel in self.channel_list[stream]:
             if channel.find('BPM') != -1:
@@ -395,6 +403,12 @@ class DAQApp(QWidget):
                 self.clusters[stream]['DCM'].append(channel)
             if channel.find('BLM/BLM') != -1:
                 self.clusters[stream]['BLM'].append(channel)
+            if channel.find('BEAMVIEW_SHIMADZU') != -1:
+                self.clusters[stream]['SHIMADZU'].append(channel)
+            if channel.find('MDL/MAIN') != -1:
+                self.clusters[stream]['MDL'].append(channel)
+            if channel.find('BEAMCONDITIONS') != -1:
+                self.clusters[stream]['BEAMCONDITIONS'].append(channel)
         self.fill_filter_table(filtertable, stream)
         filterpb.setEnabled(True)
 
@@ -413,8 +427,8 @@ class DAQApp(QWidget):
                     'Writing files to output directory......')
             print(self.checked_list)
             self.ui.pushButton.setEnabled(False)
-            self.create_hdf5_file('1')
-            self.write_hdf5_files()
+            #self.create_hdf5_file('1')
+            self.write_files()
             self.ui.status_text.setText(
                 'Files created successfully.')
             # ACTION
@@ -466,67 +480,30 @@ class DAQApp(QWidget):
                 item = matching_items[0]  # Take the first.
                 item.setCheckState(0, QtCore.Qt.Checked)
 
-    def create_hdf5_file(self, ext):
-        now = datetime.now()
-        timestamp = now.strftime('%Y-%m-%dT%H:%M:%S') + \
-            ('-%02d' % (now.microsecond / 10000))
+    def write_files(self):
+        self.d = {}
+        self.index = pd.DataFrame()
+        for inputfile, stream in zip(self.files_match['filename'], self.files_match['stream']):
+            h5f = h5py.File(self.storagepath + '/'+inputfile)
+            self.getkeys('/', h5f)
 
-        self.hd5file = 'xfel_' + self.start_timestamp_str + \
-            '_' + self.stop_timestamp_str + '_' + ext + '.hdf5'
-        print('writing into %s . . . ' % (self.hd5file), end='', flush=True)
-        self.fd = h5py.File(self.outpath
-                            + '/' + self.hd5file, "w")
-        # point to the default data to be plotted
-        self.fd.attrs[u'default'] = u'entry'
-        # give the HDF5 root some more attributes
-        self.fd.attrs[u'file_name'] = self.hd5file
-        self.fd.attrs[u'file_time'] = timestamp
-        self.fd.attrs[u'creator'] = os.path.basename(sys.argv[0])
-        self.fd.attrs[u'HDF5_Version'] = h5py.version.hdf5_version
-        self.fd.attrs[u'h5py_version'] = h5py.version.version
+        dfs_list = []
+        for key, sub_df in self.d.items():
+            if stream == 'extra_data':
+                sub_df['Trainid'] = self.index
+            dfs_list.append(sub_df)
+        #dfs_list.sort(key=len, reverse=True)
+        print(dfs_list)
+        df_merged = reduce(lambda left, right: pd.merge(
+            left, right, on=['Trainid'], how='outer'), dfs_list)
 
-    def write_hdf5_files(self):
-        with self.fd as new_data:
-            file_count = 1
-            for inputfile in self.files_match['filename']:
-                data = h5py.File(self.storagepath + '/'+inputfile, 'r')
-                # read as much datasets as possible from the old HDF5-file
-                datasets = self.getdatasets_filtered('/', data)
-                # get the group-names from the lists of datasets
-                groups = list(set([i[::-1].split('/', 1)[1][::-1]
-                                   for i in datasets]))
-                groups = [i for i in groups if len(i) > 0]
+        table = pa.Table.from_pandas(df_merged)
+        pq.write_to_dataset(
+            table,
+            root_path=self.outpath + '/xfel_' + self.start_timestamp_str
+            + '_' + self.stop_timestamp_str + '.parquet'
+        )
 
-                # sort groups based on depth
-                idx = np.argsort(np.array([len(i.split('/')) for i in groups]))
-                groups = [groups[i] for i in idx]
-
-                # create all groups that contain dataset that will be copied
-                for group in groups:
-                    if not group in new_data.keys():
-                        new_data.create_group(group)
-                    else:
-                        print(group, " is already in the file")
-
-                # copy datasets
-                for path in datasets:
-                    # - get group name
-                    group = path[::-1].split('/', 1)[1][::-1]
-                    # - minimum group name
-                    if len(group) == 0:
-                        group = '/'
-                        # - copy data
-                    print(path)
-                    data.copy(path, new_data[group])
-
-            sz = os.path.getsize(self.outpath + '/'+self.hd5file)
-            sz_MB = sz/1048576
-            if sz_MB > (self.ui.thresholdSpinBox.value()*1000):
-                file_count += 1
-                ext_inc = str(file_count)
-                self.create_hdf5_file(ext_inc)
-
-# function to return a list of paths to each dataset
     def getdatasets_filtered(self, key, archive):
         if key[-1] != '/':
             key += '/'
@@ -535,7 +512,6 @@ class DAQApp(QWidget):
             if any(key[1:-1] in s for s in self.checked_list):
                 #print('KEY', key[1:-1])
                 path = key + name
-
                 if isinstance(archive[path], h5py.Dataset):
                     out += [path]
                 else:
@@ -551,11 +527,36 @@ class DAQApp(QWidget):
             #print('KEY', key[1:-1])
             path = key + name
             if isinstance(archive[path], h5py.Dataset):
-                if (key[1:-1] not in out):
+                if (key[1:-1] not in out) and (key[1:-1] != 'INDEX') and (key[1:-1] != 'METADATA'):
                     out += [key[1:-1]]
             else:
                 out += self.getdatasets(path, archive)
         return out
+
+    def getkeys(self, key, archive):
+        if key[-1] != '/':
+            key += '/'
+        out_key = []
+        for name in archive[key]:
+            if any(key[1:-1] in s for s in self.checked_list):
+                path = key + name
+                if path.find('IMGPII45') != -1 or path.find('METADATA') != -1:
+                    continue
+                if isinstance(archive[path], h5py.Dataset):
+                    if (key[1:-1] not in out_key):
+                        self.d[key[1:-1]] = pd.DataFrame()
+                        out_key += [key[1:-1]]
+                    if path.find('INDEX/trainId') != -1:
+                        self.index['trainId'] = archive[path]
+                    if name == 'TimeStamp' or name == 'timestamp':
+                        #d[key[1:-1]]['Timestamp'] = archive[path]
+                        continue
+                    if name == 'TrainId' or name == 'trainId':
+                        self.d[key[1:-1]]['Trainid'] = archive[path]
+                    else:
+                        self.d[key[1:-1]][path] = archive[path]
+                else:
+                    self.getkeys(path, archive)
 
     def choose_output_directory(self):  # self.parent.data_dir
         self.folderpath = QtWidgets.QFileDialog.getExistingDirectory(
@@ -637,12 +638,6 @@ class DAQApp(QWidget):
             # We have found something.
             item = matching_items[0]  # Take the first.
             self.ui.treeWidget_2.setCurrentItem(item)
-
-    #def get_file_list(self):
-    #    self.file_list = []
-    #    for file in os.listdir("./hdf5"):
-    #        if file.startswith(str(self.ui.streamcomboBox.currentText())):
-    #            self.file_list.append(file)
 
     def check_xml_filename(self, path):
         if all(x in path for x in self.xml_name_matches):
@@ -796,4 +791,64 @@ for match in matches:
     date = datetime.strptime(match.group(), '%Y%m%dT%H%M%S').date()
     file_date_list.append(date)
 print(file_date_list)
+
+    def write_hdf5_files(self):
+        with self.fd as new_data:
+            file_count = 1
+            for inputfile in self.files_match['filename']:
+                data = h5py.File(self.storagepath + '/'+inputfile, 'r')
+                # read as much datasets as possible from the old HDF5-file
+                datasets = self.getdatasets_filtered('/', data)
+                # get the group-names from the lists of datasets
+                groups = list(set([i[::-1].split('/', 1)[1][::-1]
+                                   for i in datasets]))
+                groups = [i for i in groups if len(i) > 0]
+
+                # sort groups based on depth
+                idx = np.argsort(np.array([len(i.split('/')) for i in groups]))
+                groups = [groups[i] for i in idx]
+
+                # create all groups that contain dataset that will be copied
+                for group in groups:
+                    if not group in new_data.keys():
+                        new_data.create_group(group)
+                    else:
+                        print(group, " is already in the file")
+
+                # copy datasets
+                for path in datasets:
+                    # - get group name
+                    group = path[::-1].split('/', 1)[1][::-1]
+                    # - minimum group name
+                    if len(group) == 0:
+                        group = '/'
+                        # - copy data
+                    print(path)
+                    data.copy(path, new_data[group])
+
+            sz = os.path.getsize(self.outpath + '/'+self.hd5file)
+            sz_MB = sz/1048576
+            if sz_MB > (self.ui.thresholdSpinBox.value()*1000):
+                file_count += 1
+                ext_inc = str(file_count)
+                self.create_hdf5_file(ext_inc)
+
+    def create_hdf5_file(self, ext):
+        now = datetime.now()
+        timestamp = now.strftime('%Y-%m-%dT%H:%M:%S') + \
+            ('-%02d' % (now.microsecond / 10000))
+
+        self.hd5file = 'xfel_' + self.start_timestamp_str + \
+            '_' + self.stop_timestamp_str + '_' + ext + '.hdf5'
+        print('writing into %s . . . ' % (self.hd5file), end='', flush=True)
+        self.fd = h5py.File(self.outpath
+                            + '/' + self.hd5file, "w")
+        # point to the default data to be plotted
+        self.fd.attrs[u'default'] = u'entry'
+        # give the HDF5 root some more attributes
+        self.fd.attrs[u'file_name'] = self.hd5file
+        self.fd.attrs[u'file_time'] = timestamp
+        self.fd.attrs[u'creator'] = os.path.basename(sys.argv[0])
+        self.fd.attrs[u'HDF5_Version'] = h5py.version.hdf5_version
+        self.fd.attrs[u'h5py_version'] = h5py.version.version
 """

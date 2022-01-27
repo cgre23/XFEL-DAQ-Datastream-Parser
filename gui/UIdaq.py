@@ -256,9 +256,11 @@ class Ui_Form(object):
         self.gridLayout_3.addWidget(self.groupBox, 0, 0, 1, 2)
         self.timeline = QtWidgets.QTableWidget(self.tab)
         self.timeline.setMaximumSize(QtCore.QSize(16777215, 100))
+        self.timeline.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.timeline.setObjectName("timeline")
         self.timeline.setColumnCount(0)
         self.timeline.setRowCount(0)
+        self.timeline.horizontalHeader().setVisible(False)
         self.gridLayout_3.addWidget(self.timeline, 1, 1, 1, 1)
         self.tabWidget.addTab(self.tab, "")
         self.tab_2 = QtWidgets.QWidget()
@@ -291,7 +293,7 @@ class Ui_Form(object):
 
         self.retranslateUi(Form)
         self.tabWidget.setCurrentIndex(0)
-        self.streamtabs.setCurrentIndex(0)
+        self.streamtabs.setCurrentIndex(4)
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
@@ -316,7 +318,7 @@ class Ui_Form(object):
         self.filterpb_5.setText(_translate("Form", "Apply Filter"))
         self.treeWidget_6.setSortingEnabled(False)
         self.treeWidget_6.headerItem().setText(0, _translate("Form", "Channel Name"))
-        self.streamtabs.setTabText(self.streamtabs.indexOf(self.tab_7), _translate("Form", "KARABO"))
+        self.streamtabs.setTabText(self.streamtabs.indexOf(self.tab_7), _translate("Form", "EXTRA_DATA"))
         self.groupBox.setTitle(_translate("Form", "Settings"))
         self.label_3.setText(_translate("Form", "Output directory:"))
         self.pushButton.setText(_translate("Form", "Create HDF5 files"))
