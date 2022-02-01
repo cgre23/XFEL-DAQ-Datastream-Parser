@@ -389,7 +389,7 @@
          </widget>
          <widget class="QWidget" name="tab_7">
           <attribute name="title">
-           <string>EXTRA_DATA</string>
+           <string>KARABO</string>
           </attribute>
           <layout class="QGridLayout" name="gridLayout_4">
            <item row="0" column="1">

@@ -318,7 +318,7 @@ class Ui_Form(object):
         self.filterpb_5.setText(_translate("Form", "Apply Filter"))
         self.treeWidget_6.setSortingEnabled(False)
         self.treeWidget_6.headerItem().setText(0, _translate("Form", "Channel Name"))
-        self.streamtabs.setTabText(self.streamtabs.indexOf(self.tab_7), _translate("Form", "EXTRA_DATA"))
+        self.streamtabs.setTabText(self.streamtabs.indexOf(self.tab_7), _translate("Form", "KARABO"))
         self.groupBox.setTitle(_translate("Form", "Settings"))
         self.label_3.setText(_translate("Form", "Output directory:"))
         self.pushButton.setText(_translate("Form", "Create HDF5 files"))
