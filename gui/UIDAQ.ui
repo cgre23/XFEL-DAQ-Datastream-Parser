@@ -505,7 +505,7 @@
           <item row="3" column="8">
            <widget class="QPushButton" name="pushButton">
             <property name="text">
-             <string>Create HDF5 files</string>
+             <string>Export files</string>
             </property>
            </widget>
           </item>
@@ -658,11 +658,20 @@
            <height>100</height>
           </size>
          </property>
+         <property name="horizontalScrollBarPolicy">
+          <enum>Qt::ScrollBarAlwaysOff</enum>
+         </property>
+         <property name="sizeAdjustPolicy">
+          <enum>QAbstractScrollArea::AdjustToContents</enum>
+         </property>
          <property name="editTriggers">
           <set>QAbstractItemView::NoEditTriggers</set>
          </property>
          <attribute name="horizontalHeaderVisible">
           <bool>false</bool>
+         </attribute>
+         <attribute name="horizontalHeaderDefaultSectionSize">
+          <number>50</number>
          </attribute>
         </widget>
        </item>
