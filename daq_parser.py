@@ -74,10 +74,6 @@ class DAQApp(QWidget):
         self.ui.timeline.setColumnCount(self.tw_columns+1)
         self.ui.timeline.horizontalHeader().setVisible(False)
         self.ui.timeline.verticalHeader().setVisible(False)
-        #header = self.ui.timeline.horizontalHeader()
-        #header.setSectionResizeMode(2, QtWidgets.QHeaderView.Fixed)
-        #self.ui.timeline.setSizeAdjustPolicy(
-        #    QtWidgets.QAbstractScrollArea.AdjustToContents)
         self.timeline_colors = [QtGui.QColor(
             255, 0, 0), QtGui.QColor(0, 119, 255), QtGui.QColor(255, 255, 0), QtGui.QColor(0, 255, 0), QtGui.QColor(102, 0, 204), QtGui.QColor(255, 0, 0), ]
         self.date_header_color = QtGui.QColor(195, 195, 195)
@@ -439,15 +435,15 @@ class DAQApp(QWidget):
         filterpb.setEnabled(True)
 
     def find_checked(self):
-        self.checked_list = []
-        for treeView in self.tablist:
+        self.checked_list = defaultdict(list)
+        for treeView, stream in zip(self.tablist, self.streams):
             root = treeView.invisibleRootItem()
             signal_count = root.childCount()
             if signal_count > 0:
                 for i in range(signal_count):
                     signal = root.child(i)
                     if signal.checkState(0) == QtCore.Qt.Checked:
-                        self.checked_list.append(signal.text(0))
+                        self.checked_list[stream].append(signal.text(0))
         if self.checked_list != []:
             self.ui.status_text.setText(
                     'Writing files to output directory......')
@@ -510,7 +506,7 @@ class DAQApp(QWidget):
         self.d = {}
         for inputfile, stream in zip(self.files_match['filename'], self.files_match['stream']):
             h5f = h5py.File(self.storagepath + '/'+inputfile)
-            self.getkeys('/', h5f)
+            self.getkeys('/', h5f, stream)
             if stream == 'karabo':
                 self.index = pd.DataFrame()
                 self.getindex('/', h5f)
@@ -535,27 +531,16 @@ class DAQApp(QWidget):
         print(dfs_list)
         df_merged = reduce(lambda left, right: pd.merge(
             left, right, on=['Trainid', 'timestamp'], how='outer'), dfs_list)
-        print(df_merged)
-        table = pa.Table.from_pandas(df_merged)
+        df_clipped = df_merged[(df_merged.index.get_level_values('timestamp') >= int(
+            self.start_t.timestamp())*1e6) & (df_merged.index.get_level_values('timestamp') < int(self.stop_t.timestamp())*1e6)]
+        print(df_clipped)
+        print(int(self.start_t.timestamp()*1e6))
+        table = pa.Table.from_pandas(df_clipped)
         pq.write_to_dataset(
             table,
             root_path=self.outpath + '/xfel_' + self.start_timestamp_str
             + '_' + self.stop_timestamp_str + '.parquet'
         )
-
-    def getdatasets_filtered(self, key, archive):
-        if key[-1] != '/':
-            key += '/'
-        out = []
-        for name in archive[key]:
-            if any(key[1:-1] in s for s in self.checked_list):
-                #print('KEY', key[1:-1])
-                path = key + name
-                if isinstance(archive[path], h5py.Dataset):
-                    out += [path]
-                else:
-                    out += self.getdatasets_filtered(path, archive)
-        return out
 
 # function to return a list of paths to each dataset
     def getdatasets(self, key, archive):
@@ -572,12 +557,12 @@ class DAQApp(QWidget):
                 out += self.getdatasets(path, archive)
         return out
 
-    def getkeys(self, key, archive):
+    def getkeys(self, key, archive, stream):
         if key[-1] != '/':
             key += '/'
         out_key = []
         for name in archive[key]:
-            if any(key[1:-1] in s for s in self.checked_list):
+            if any(key[1:-1] in s for s in self.checked_list[stream]):
                 path = key + name
                 if path.find('IMGPII45') != -1:
                     continue
@@ -594,7 +579,7 @@ class DAQApp(QWidget):
                     else:
                         self.d[key[1:-1]][path] = archive[path]
                 else:
-                    self.getkeys(path, archive)
+                    self.getkeys(path, archive, stream)
 
     def getindex(self, key, archive):
         if key[-1] != '/':

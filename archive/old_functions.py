@@ -1,4 +1,18 @@
 """
+    def getdatasets_filtered(self, key, archive, stream):
+        if key[-1] != '/':
+            key += '/'
+        out = []
+        for name in archive[key]:
+            if any(key[1:-1] in s for s in self.checked_list[stream]):
+                #print('KEY', key[1:-1])
+                path = key + name
+                if isinstance(archive[path], h5py.Dataset):
+                    out += [path]
+                else:
+                    out += self.getdatasets_filtered(path, archive)
+        return out
+
     def clusters_check(self):
         self.clusters = {}
         self.clusters['Select all'], self.clusters['BPM'], self.clusters['BAM'], self.clusters['BCM'], self.clusters['XGM'], self.clusters['TOROID'], self.clusters[
