@@ -40,7 +40,7 @@ class DAQApp(QWidget):
                         'xfel_sase3', 'linac', 'karabo']
         self.banned_channels = ['INDEX', 'METADATA', 'XFEL.DAQ']
         self.streampath = ''
-        self.storagepath = '/Users/christiangrech/Documents/GitHub/XFEL-DAQ-Datastream-Parser/hdf5'
+        self.storagepath = '/Users/christiangrech/Data'
         self.outpath = os.getcwd() + '/out'
         # Disable buttons
         self.ui.loadcataloguepb.setEnabled(False)
@@ -97,12 +97,9 @@ class DAQApp(QWidget):
 
         # table/ tree headers
         for treeWidget in self.tablist:
-            treeWidget.setHeaderLabels(
-                ['Channel name'])
-            treeWidget.setHeaderLabels(
-                ['Channel name'])
-            treeWidget.setHeaderLabels(
-                ['Channel name'])
+            treeWidget.setHeaderLabels(['Channel name'])
+            treeWidget.setHeaderLabels(['Channel name'])
+            treeWidget.setHeaderLabels(['Channel name'])
             header = treeWidget.header()
             header.setStretchLastSection(True)
 
