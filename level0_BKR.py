@@ -40,7 +40,7 @@ def create_xml(filename, start_time, stop_time, stream_name, channel_list):
             <TStop  time='${stoptime}'/>
             <Exp  name='${exp}'/>
             ${document_list}
-            <CDir name='/home/grechc/Documents/Datastream/admtemp' />
+            <CDir name='/daq/xfel/admtemp'/>
             </DAQREQ>
              """)
     inner_contents = [inner_template.substitute(

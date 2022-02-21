@@ -539,6 +539,46 @@ class DAQApp(QWidget):
             + '_' + self.stop_timestamp_str + '.parquet'
         )
 
+    def write_files_hdf5(self):
+        self.d = {}
+        for inputfile, stream in zip(self.files_match['filename'], self.files_match['stream']):
+            h5f = h5py.File(self.storagepath + '/'+inputfile)
+            self.getkeys('/', h5f, stream)
+            if stream == 'karabo':
+                self.index = pd.DataFrame()
+                self.getindex('/', h5f)
+            h5f.close()
+
+        dfs_list = []
+        for key, sub_df in self.d.items():
+            if not 'Trainid' in sub_df.columns:
+                sub_df['Trainid'] = self.index['trainId']
+            if key.find('INSTRUMENT') != -1:
+                sub_df['timestamp'] = self.index['timestamp']
+            if 'timestamp' in sub_df.columns:
+                sub_df['timestamp'] = [int(x // 1000)
+                                       for x in self.index['timestamp']]
+            if 'TimeStamp' in sub_df.columns:    # XFEL DAQ
+                sub_df['timestamp'] = [int((datetime.fromtimestamp(x[0]).replace(
+                    microsecond=x[1]).timestamp())*1e6) for x in sub_df['TimeStamp']]
+                sub_df = sub_df.drop(columns=['TimeStamp'])
+            sub_df.set_index(['Trainid', 'timestamp'], inplace=True, drop=True)
+            dfs_list.append(sub_df)
+        #dfs_list.sort(key=len, reverse=True)
+        print(dfs_list)
+        df_merged = reduce(lambda left, right: pd.merge(
+            left, right, on=['Trainid', 'timestamp'], how='outer'), dfs_list)
+        df_clipped = df_merged[(df_merged.index.get_level_values('timestamp') >= int(
+            self.start_t.timestamp())*1e6) & (df_merged.index.get_level_values('timestamp') < int(self.stop_t.timestamp())*1e6)]
+        print(df_clipped)
+        print(int(self.start_t.timestamp()*1e6))
+        table = pa.Table.from_pandas(df_clipped)
+        pq.write_to_dataset(
+            table,
+            root_path=self.outpath + '/xfel_' + self.start_timestamp_str
+            + '_' + self.stop_timestamp_str + '.parquet'
+        )
+
 # function to return a list of paths to each dataset
     def getdatasets(self, key, archive):
         if key[-1] != '/':
