@@ -15,3 +15,5 @@ Example:
 python3 level0_karabo.py --proposal 2919 --run 1
 
 * daq_parser_v2.py - GUI interface to export selected channels in a specific timestamp range to a parquet format.
+
+--start 2022-10-16T18:10:00 --stop 2022-10-16T18:11:00 --xmldfile /daq/xfel/admtemp/2022/linac/main/run1982/linac_main_run1982_chan_dscr.xml --xmlfile xml/sase2.xml
