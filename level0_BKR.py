@@ -27,6 +27,7 @@ def HelpAndExit():
     print("\t--start stime\t\t- stime is the start time to be used in the request. The format (Year-Month-DayTHour:Min:Sec, eg. 2020-01-01T00:00:00)")
     print("\t--stop stime\t\t- stime is the stop time to be used in the request. The format (Year-Month-DayTHour:Min:Sec, eg. 2020-01-01T00:00:00)")
     print("\t--xmldfile file\t\t- XML file with DAQ channel descriptions")
+    print("\t--xmlfile file\t\t - XML file with filtered list of channels")
     print("\t--dest destination\t- Filter bunch either by SA1, SA2 or SA3")
     print("\t--dout path\t\t- directory for storing HDF5 files")
     print("\t-h\t\t- prints this help\n")
@@ -77,13 +78,14 @@ def pre_conversion(argv):
     start = None
     stop = None
     xmldfile = None
+    xmlfile = None
     dout = None
     bit1 = None
     bit2 = None
     dest = None
     try:
         opts, args = getopt.getopt(
-            argv, "hs:t:c:d:o", ["start=", "stop=", "xmldfile=", "dest=", "dout="])
+            argv, "hs:t:c:d:o:x", ["start=", "stop=", "xmldfile=", "dest=", "dout=", "xmlfile="])
     except getopt.GetoptError:
         HelpAndExit()
     for opt, arg in opts:
@@ -99,9 +101,12 @@ def pre_conversion(argv):
             dest = arg
         elif opt in ("-o", "--dout"):
             dout = arg
+        elif opt in ("-x", "--xmlfile"):
+            xmlfile = arg
     print('Start time is: ', start)
     print('Stop time is: ', stop)
     print('Desc is: ', xmldfile)
+    print('XMLfile is: ', xmlfile)
     print('Dest is: ', dest)
     print('Output folder is: ', dout)
 
@@ -135,8 +140,13 @@ def pre_conversion(argv):
     if stoptime <= starttime:
         Fatal("Please, check that stop time is later than the start time.")
 
-    if (not os.path.exists(xmldfile)) or (not os.access(xmldfile, os.R_OK)):
-        Fatal("XML description file '%s' doesn't exist or not readable" % xmldfile)
+    if xmldfile:
+        if (not os.path.exists(xmldfile)) or (not os.access(xmldfile, os.R_OK)):
+            Fatal("XML description file '%s' doesn't exist or not readable" % xmldfile)
+
+    if xmlfile:
+        if (not os.path.exists(xmlfile)) or (not os.access(xmlfile, os.R_OK)):
+            Fatal("XML file '%s' doesn't exist or not readable" % xmldfile)
 
     if dest:
         if dest == 'SA1':
@@ -159,39 +169,44 @@ def pre_conversion(argv):
         print('No filter by destination applied')
         bunchfilter = 'all'
 
-    xmldoc = minidom.parse(xmldfile)
-    itemlist = xmldoc.getElementsByTagName(name_tag)
+    if xmldfile and not xmlfile:
+        xmldoc = minidom.parse(xmldfile)
+        itemlist = xmldoc.getElementsByTagName(name_tag)
 
-    for s in itemlist:
-        channel_list.append(s.firstChild.nodeValue)
+        for s in itemlist:
+            channel_list.append(s.firstChild.nodeValue)
 
-    if timing_channel not in channel_list:
-        print("%s is not in list." % (timing_channel))
-        #    bunchfilter = 'all'
-        sys.exit(-1)
+        if timing_channel not in channel_list:
+            print("%s is not in list." % (timing_channel))
+            #    bunchfilter = 'all'
+            sys.exit(-1)
 
-    indx = channel_list.index(timing_channel)
-    if indx != 0:
-        channel_list[0], channel_list[indx] = channel_list[indx], channel_list[0]
+        indx = channel_list.index(timing_channel)
+        if indx != 0:
+            channel_list[0], channel_list[indx] = channel_list[indx], channel_list[0]
 
-    streamname = os.path.basename(xmldfile).split('_main')[0]
-    print('Detected stream: ', streamname)
-    # saving the updated XML request file
-    dest_dir = 'tmp'
-    try:
-        os.makedirs(dest_dir)
-    except OSError:
-        pass  # already exists
+        streamname = os.path.basename(xmldfile).split('_main')[0]
+        print('Detected stream: ', streamname)
+        # saving the updated XML request file
+        dest_dir = 'tmp'
+        try:
+            os.makedirs(dest_dir)
+        except OSError:
+            pass  # already exists
 
-    tmpxmlfile = 'xfelrequest.xml'
-    xmlpath = os.path.join(dest_dir, tmpxmlfile)
-    xml, res = create_xml(xmlpath, start, stop, streamname, channel_list)
+        tmpxmlfile = 'xfelrequest.xml'
+        xmlpath = os.path.join(dest_dir, tmpxmlfile)
+        xml, res = create_xml(xmlpath, start, stop, streamname, channel_list)
 
-    if not res:
-        print('Failed to create XML file %s ... exiting' % tmpxmlfile)
-        sys.exit(-1)
-    else:
-        print('XML file created')
+        if not res:
+            print('Failed to create XML file %s ... exiting' % tmpxmlfile)
+            sys.exit(-1)
+        else:
+            print('XML file created')
+    
+    if xmlfile:
+        xmlpath=xmlfile
+
 
     return start, stop, bit1, bit2, xmldfile, xmlpath, bunchfilter
 
