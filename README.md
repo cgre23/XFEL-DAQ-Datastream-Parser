@@ -8,7 +8,6 @@ Software to convert DAQ files from XFEL DAQ Datastreams and Karabo to a table fo
 
 Example:
 python3 level0.py --start 2021-11-17T15:02:00 --stop 2021-11-17T15:02:05 --xmldfile xml/xfel_sase1_main_run1727_chan_dscr.xml --dest SA1
-
 * level0_karabo.py - Gets data from Karabo. Data is stored as HDF5 files.
 
 Example:
